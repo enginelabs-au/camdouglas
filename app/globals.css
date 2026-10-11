@@ -141,7 +141,6 @@ p {
 .overlay a,
 .overlay button,
 .overlay .panel,
-.overlay .content,
 .overlay .site-footer,
 .overlay .fallback,
 .overlay input,
@@ -247,6 +246,7 @@ p {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .content-wide {
@@ -864,6 +864,10 @@ button.offer-cta {
   transition: color 0.12s ease;
 }
 
+.star-rating:not(.is-readonly) {
+  touch-action: none;
+}
+
 .star-rating.is-draft {
   color: rgba(227, 154, 74, 0.7);
 }
@@ -906,6 +910,11 @@ button.offer-cta {
   padding: 0;
   border: 0;
   background: transparent;
+  pointer-events: none;
+}
+
+.overlay .star-hit {
+  pointer-events: none;
 }
 
 .star-hit.left {
@@ -1119,7 +1128,7 @@ button.offer-cta {
     align-items: flex-start;
     left: 0.7rem;
     right: 0.7rem;
-    bottom: max(4.6rem, calc(env(safe-area-inset-bottom) + 3.8rem));
+    bottom: max(6.6rem, calc(env(safe-area-inset-bottom) + 5.8rem));
     padding-right: 0;
     gap: 0.28rem;
     max-width: none;
@@ -1211,7 +1220,7 @@ button.offer-cta {
   }
 
   .hero {
-    bottom: max(4.6rem, calc(env(safe-area-inset-bottom) + 4.2rem));
+    bottom: max(6.2rem, calc(env(safe-area-inset-bottom) + 5.6rem));
   }
 
   .hero h1 {

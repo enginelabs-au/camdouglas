@@ -367,17 +367,29 @@ export function startAsciiGalaxy(
     raf = requestAnimationFrame(animate);
   }
 
-  const pointers = new Map<number, { x: number; y: number }>();
+  const pointers = new Map<number, { x: number; y: number; startX: number; startY: number; inPanel: boolean; locked: boolean }>();
   let oldX = 0;
   let oldY = 0;
   let pinch = 0;
+  const ignoreDrag = "a, button, input, textarea, select, label, .star-rating, .site-footer";
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const target = e.target as HTMLElement | null;
+    if (target?.closest(ignoreDrag)) return;
+    const inPanel = e.pointerType === "touch" && Boolean(target?.closest(".panel"));
+    pointers.set(e.pointerId, {
+      x: e.clientX,
+      y: e.clientY,
+      startX: e.clientX,
+      startY: e.clientY,
+      inPanel,
+      locked: !inPanel,
+    });
     oldX = e.clientX;
     oldY = e.clientY;
     pinch = 0;
+    if (inPanel) return;
     state.auto = false;
     try {
       root.setPointerCapture(e.pointerId);
@@ -389,8 +401,21 @@ export function startAsciiGalaxy(
   };
 
   const onPointerMove = (e: PointerEvent) => {
-    if (!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const prev = pointers.get(e.pointerId);
+    if (!prev) return;
+    const next = { ...prev, x: e.clientX, y: e.clientY };
+    if (prev.inPanel && !prev.locked) {
+      const totalX = e.clientX - prev.startX;
+      const totalY = e.clientY - prev.startY;
+      if (Math.hypot(totalX, totalY) < 12) return;
+      if (Math.abs(totalY) >= Math.abs(totalX)) {
+        pointers.delete(e.pointerId);
+        return;
+      }
+      next.locked = true;
+      state.auto = false;
+    }
+    pointers.set(e.pointerId, next);
     if (pointers.size >= 2) {
       const pts = Array.from(pointers.values());
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -399,11 +424,12 @@ export function startAsciiGalaxy(
       if (e.cancelable) e.preventDefault();
       return;
     }
+    if (prev.inPanel && !next.locked) return;
     state.targetYaw += (e.clientX - oldX) * 0.008;
     state.targetPitch += (e.clientY - oldY) * 0.008;
     oldX = e.clientX;
     oldY = e.clientY;
-    if (e.pointerType === "touch" && e.cancelable) e.preventDefault();
+    if ((e.pointerType === "touch" || next.locked) && e.cancelable) e.preventDefault();
   };
 
   const onPointerUp = (e: PointerEvent) => {
@@ -427,7 +453,7 @@ export function startAsciiGalaxy(
     state.auto = false;
   };
 
-  root.addEventListener("pointerdown", onPointerDown, { passive: false });
+  window.addEventListener("pointerdown", onPointerDown, { passive: false, capture: true });
   window.addEventListener("pointermove", onPointerMove, { passive: false });
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
@@ -463,7 +489,7 @@ export function startAsciiGalaxy(
     destroy() {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      root.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);

@@ -26,7 +26,7 @@ export const engineLabs = {
   headline: "Engine Labs",
   lede: "An agentic company, building agentic companies.",
   summary:
-    "Engine Labs is a one-operator AI build studio in Sydney. Eight productised Engines — each with a published spec sheet, a starting price in AUD, and a real handover.",
+    "Engine Labs is a one-operator AI build studio in Sydney. Eight productised Engines, each with a published spec sheet, a starting price in AUD, and a real handover.",
   siteHref: "https://enginelabs.com.au",
   catalogHref: "https://enginelabs.com.au/engines",
 };

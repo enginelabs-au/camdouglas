@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 const STAR =
   "M12 2.15l2.62 5.31 5.86.85-4.24 4.13 1 5.82L12 15.5l-5.24 2.76 1-5.82-4.24-4.13 5.86-.85L12 2.15z";
@@ -9,6 +9,13 @@ function fillFor(value: number, index: number): "empty" | "half" | "full" {
   if (value >= index) return "full";
   if (value >= index - 0.5) return "half";
   return "empty";
+}
+
+function ratingFromClientX(element: HTMLElement, clientX: number) {
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0) return 0.5;
+  const next = Math.round(((clientX - rect.left) / rect.width) * 10) / 2;
+  return Math.min(5, Math.max(0.5, next));
 }
 
 function StarIcon({ fill, gradId }: { fill: "empty" | "half" | "full"; gradId: string }) {
@@ -43,6 +50,8 @@ export function StarRating({
   readOnly?: boolean;
 }) {
   const uid = useId().replace(/:/g, "");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
   const label = value > 0 ? `${value} out of 5 stars` : "No rating selected";
@@ -55,8 +64,21 @@ export function StarRating({
     .filter(Boolean)
     .join(" ");
 
+  function peek(clientX: number) {
+    if (!rootRef.current) return 0.5;
+    return ratingFromClientX(rootRef.current, clientX);
+  }
+
+  function commit(clientX: number) {
+    if (!onChange) return;
+    onChange(peek(clientX));
+    dragging.current = false;
+    setDraft(null);
+  }
+
   return (
     <div
+      ref={rootRef}
       className={className}
       role={readOnly ? "img" : "slider"}
       aria-label="Rating"
@@ -64,7 +86,40 @@ export function StarRating({
       aria-valuemax={readOnly ? undefined : 5}
       aria-valuenow={readOnly ? undefined : value || 0.5}
       aria-valuetext={draft ? `${draft} out of 5 stars` : label}
-      onPointerLeave={readOnly ? undefined : () => setDraft(null)}
+      onPointerDown={
+        readOnly
+          ? undefined
+          : (event) => {
+              dragging.current = true;
+              setDraft(peek(event.clientX));
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }
+      }
+      onPointerMove={
+        readOnly
+          ? undefined
+          : (event) => {
+              if (event.pointerType !== "mouse" && !dragging.current) return;
+              setDraft(peek(event.clientX));
+            }
+      }
+      onPointerUp={
+        readOnly
+          ? undefined
+          : (event) => {
+              if (!dragging.current) return;
+              commit(event.clientX);
+            }
+      }
+      onPointerCancel={
+        readOnly
+          ? undefined
+          : () => {
+              dragging.current = false;
+              setDraft(null);
+            }
+      }
+      onPointerLeave={readOnly ? undefined : () => { if (!dragging.current) setDraft(null); }}
       onKeyDown={
         readOnly || !onChange
           ? undefined
@@ -88,6 +143,7 @@ export function StarRating({
               <button
                 type="button"
                 className="star-hit left"
+                tabIndex={-1}
                 aria-label={`${index - 0.5} stars`}
                 onPointerEnter={() => setDraft(index - 0.5)}
                 onFocus={() => setDraft(index - 0.5)}
@@ -99,6 +155,7 @@ export function StarRating({
               <button
                 type="button"
                 className="star-hit right"
+                tabIndex={-1}
                 aria-label={`${index} stars`}
                 onPointerEnter={() => setDraft(index)}
                 onFocus={() => setDraft(index)}
