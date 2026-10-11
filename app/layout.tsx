@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Bebas_Neue, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Bebas_Neue, Inter, Libre_Baskerville } from "next/font/google";
 import { site } from "@/config/site";
 import "./globals.css";
 
@@ -15,6 +15,19 @@ const bebas = Bebas_Neue({
   variable: "--font-display",
   display: "swap",
 });
+
+const reviewSerif = Libre_Baskerville({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-review",
+  display: "swap",
+});
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -32,7 +45,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${bebas.variable}`}>
+    <html lang="en" className={`${inter.variable} ${bebas.variable} ${reviewSerif.variable}`}>
       <body>{children}</body>
     </html>
   );

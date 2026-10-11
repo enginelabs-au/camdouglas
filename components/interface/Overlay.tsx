@@ -11,12 +11,10 @@ import { Navigation } from "@/components/interface/Navigation";
 import { Production } from "@/components/interface/Production";
 import { Footer } from "@/components/interface/Footer";
 import { Reviews } from "@/components/interface/Reviews";
-import { SceneControls } from "@/components/interface/SceneControls";
 import { SceneFallback } from "@/components/interface/SceneFallback";
 
 export function Overlay() {
-  const { destination, status, errorMessage, setDestination, resetView, setExploring, exploring } =
-    useExperience();
+  const { destination, status, errorMessage, setDestination, resetView } = useExperience();
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -26,15 +24,12 @@ export function Overlay() {
       }
 
       if (event.key === "Escape") {
-        if (exploring) setExploring(false);
-        else resetView();
+        resetView();
         return;
       }
 
       if (event.key === "h" || event.key === "H") {
         setDestination("home");
-      } else if (event.key === "e" || event.key === "E") {
-        setExploring(!exploring);
       } else if (event.key === "r" || event.key === "R") {
         resetView();
       } else if (event.key === "1") {
@@ -54,7 +49,7 @@ export function Overlay() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [exploring, resetView, setDestination, setExploring]);
+  }, [resetView, setDestination]);
 
   return (
     <div className="overlay">
@@ -66,7 +61,10 @@ export function Overlay() {
         className={
           destination === "home"
             ? "content-home"
-            : destination === "production" || destination === "engine-labs" || destination === "reviews"
+            : destination === "production" ||
+                destination === "engine-labs" ||
+                destination === "reviews" ||
+                destination === "about"
               ? "content content-wide"
               : "content"
         }
@@ -81,7 +79,6 @@ export function Overlay() {
       </main>
       <LoadingState />
       <Footer />
-      <SceneControls />
       {status === "unsupported" ? <SceneFallback reason="unsupported" /> : null}
       {status === "error" ? <SceneFallback reason="error" message={errorMessage} /> : null}
     </div>

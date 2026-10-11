@@ -1,6 +1,8 @@
 import { site } from "@/config/site";
-import { reviewProviders } from "@/config/reviews";
-import { readIdentity } from "@/lib/reviewIdentity";
+import { displayHandle, reviewProviders } from "@/config/reviews";
+import { approvalToken, approvalUrl, parseRating, reviewFromIdentity } from "@/lib/reviewApproval";
+import { appOrigin, readIdentity } from "@/lib/reviewIdentity";
+import { hydrateIdentity, listApprovedReviews } from "@/lib/reviewStore";
 
 export const runtime = "nodejs";
 
@@ -24,6 +26,12 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function reviewFromAddress() {
+  if (process.env.REVIEW_FROM) return process.env.REVIEW_FROM;
+  const email = process.env.RESEND_FROM_EMAIL || inbox;
+  return `Cam Douglas <${email}>`;
+}
+
 async function sendEmail(subject: string, text: string, html: string) {
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
@@ -34,17 +42,17 @@ async function sendEmail(subject: string, text: string, html: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.REVIEW_FROM ?? "Cam Douglas <beth.t@example.com>",
+        from: reviewFromAddress(),
         to: [inbox],
         subject,
         text,
         html,
       }),
     });
-    if (!response.ok) {
-      throw new Error(`Resend failed (${response.status})`);
-    }
-    return;
+    if (response.ok) return;
+    const detail = await response.text().catch(() => "");
+    console.error("Resend failed", response.status, detail.slice(0, 500));
+    throw new Error(`Resend failed (${response.status})`);
   }
 
   const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(inbox)}`, {
@@ -82,10 +90,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Please wait a moment before sending another review." }, { status: 429 });
   }
 
-  const identity = readIdentity(request.headers.get("cookie"));
-  if (!identity) {
+  const cookieIdentity = readIdentity(request.headers.get("cookie"));
+  if (!cookieIdentity) {
     return Response.json({ error: "Log in to confirm the account before sending a review." }, { status: 401 });
   }
+  const identity = await hydrateIdentity(cookieIdentity);
 
   const spec = reviewProviders.find((item) => item.id === identity.provider);
   if (!spec?.login) {
@@ -95,22 +104,29 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const quote = clampText(body?.quote, 20, 1200);
   if (quote.length < 20) return Response.json({ error: "Write a little more in the review." }, { status: 400 });
+  const rating = parseRating(body?.rating);
+  if (rating === null) return Response.json({ error: "Choose a star rating." }, { status: 400 });
 
-  const handle = identity.login.replace(/^@/, "");
+  const review = reviewFromIdentity(identity, quote, rating);
+  const token = approvalToken(review);
+  const approveHref = approvalUrl(appOrigin(request), token);
+  const username = displayHandle(review);
   const subject = `Review for approval · ${spec.label} · ${identity.name}`;
   const text = [
     "A review was submitted and is waiting for your approval.",
     "",
     `Platform: ${spec.label}`,
     `Name: ${identity.name}`,
-    identity.provider === "github" ? `Username: @${handle}` : `Username: ${handle}`,
+    `Username: ${username}`,
     identity.email ? `Email: ${identity.email}` : null,
     identity.profileUrl ? `Profile: ${identity.profileUrl}` : null,
     `Verified account id: ${identity.id}`,
+    `Rating: ${rating} / 5`,
     "",
     quote,
     "",
-    "Nothing is published until you add it to config/reviews.ts.",
+    "Approve and publish on the Reviews tab:",
+    approveHref,
   ]
     .filter((line) => line !== null)
     .join("\n");
@@ -119,17 +135,25 @@ export async function POST(request: Request) {
     <p>A review was submitted and is waiting for your approval.</p>
     <p><strong>Platform:</strong> ${escapeHtml(spec.label)}<br/>
     <strong>Name:</strong> ${escapeHtml(identity.name)}<br/>
-    ${identity.provider === "github" ? `<strong>Username:</strong> @${escapeHtml(handle)}<br/>` : ""}
+    <strong>Username:</strong> ${escapeHtml(username)}<br/>
     ${identity.email ? `<strong>Email:</strong> ${escapeHtml(identity.email)}<br/>` : ""}
     ${identity.profileUrl ? `<strong>Profile:</strong> <a href="${escapeHtml(identity.profileUrl)}">${escapeHtml(identity.profileUrl)}</a><br/>` : ""}
-    <strong>Verified account id:</strong> ${escapeHtml(identity.id)}</p>
+    <strong>Verified account id:</strong> ${escapeHtml(identity.id)}<br/>
+    <strong>Rating:</strong> ${rating} / 5</p>
     <blockquote>${escapeHtml(quote)}</blockquote>
-    <p>Nothing is published until you add it to <code>config/reviews.ts</code>.</p>
+    <p>
+      <a href="${escapeHtml(approveHref)}" style="display:inline-block;padding:10px 16px;background:#f7f4ef;color:#05070c;text-decoration:none;border-radius:999px;font-weight:600;">
+        Approve and publish
+      </a>
+    </p>
+    <p>This publishes the review and username on the Reviews tab. If the button does not work, use this link:<br/>
+    <a href="${escapeHtml(approveHref)}">${escapeHtml(approveHref)}</a></p>
   `;
 
   try {
     await sendEmail(subject, text, html);
-  } catch {
+  } catch (error) {
+    console.error("Review email failed", error);
     return Response.json(
       { error: "The review could not be emailed yet. Try again, or write to Cam directly." },
       { status: 502 },
@@ -137,4 +161,9 @@ export async function POST(request: Request) {
   }
 
   return Response.json({ ok: true });
+}
+
+export async function GET() {
+  const reviews = await listApprovedReviews();
+  return Response.json({ reviews }, { headers: { "Cache-Control": "no-store" } });
 }

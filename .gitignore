@@ -44,3 +44,4 @@ next-env.d.ts
 /public/scenes/*.zip
 !/public/scenes/.gitkeep
 .vercel
+.data

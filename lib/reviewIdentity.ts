@@ -38,11 +38,15 @@ function unsign(token: string) {
   return value;
 }
 
-function encode(payload: unknown) {
+export function signPayload(payload: unknown) {
   return sign(Buffer.from(JSON.stringify(payload), "utf8").toString("base64url"));
 }
 
-function decode<T>(token: string | undefined | null): T | null {
+function encode(payload: unknown) {
+  return signPayload(payload);
+}
+
+export function readPayload<T>(token: string | undefined | null): T | null {
   if (!token) return null;
   const value = unsign(token);
   if (!value) return null;
@@ -53,19 +57,36 @@ function decode<T>(token: string | undefined | null): T | null {
   }
 }
 
+function decode<T>(token: string | undefined | null): T | null {
+  return readPayload<T>(token);
+}
+
 function cookie(name: string, token: string, maxAge: number) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${name}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 }
 
+export function compactIdentity(identity: ReviewIdentity): ReviewIdentity {
+  return {
+    provider: identity.provider,
+    id: identity.id,
+    login: identity.login,
+    name: identity.name,
+    avatar: "",
+    profileUrl: identity.profileUrl,
+    email: identity.email,
+  };
+}
+
 export function identityCookie(identity: ReviewIdentity) {
-  return cookie(IDENTITY, encode(identity), 60 * 60);
+  return cookie(IDENTITY, encode(compactIdentity(identity)), 60 * 60);
 }
 
 export function oauthStateCookie(state: {
   provider: ReviewProviderId;
   account: ReviewAccount | null;
   nonce: string;
+  verifier?: string;
 }) {
   return cookie(OAUTH_STATE, encode({ ...state, ts: Date.now() }), 600);
 }
@@ -74,20 +95,27 @@ export function clearIdentityCookie() {
   return `${IDENTITY}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
+export function clearOAuthStateCookie() {
+  return `${OAUTH_STATE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
 export function readIdentity(header: string | null): ReviewIdentity | null {
   return decode<ReviewIdentity>(readNamed(header, IDENTITY));
 }
 
 export function readOAuthState(header: string | null) {
-  return decode<{ provider: ReviewProviderId; account: ReviewAccount | null; nonce: string; ts: number }>(
-    readNamed(header, OAUTH_STATE),
-  );
+  return decode<{
+    provider: ReviewProviderId;
+    account: ReviewAccount | null;
+    nonce: string;
+    verifier?: string;
+    ts: number;
+  }>(readNamed(header, OAUTH_STATE));
 }
 
 export function reviewLoginReady() {
   return {
     github: Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET),
-    google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     linkedin: Boolean(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET),
   };
 }
@@ -99,11 +127,18 @@ function readNamed(header: string | null, name: string) {
 }
 
 export function appOrigin(request: Request) {
-  if (process.env.REVIEW_APP_URL) return process.env.REVIEW_APP_URL.replace(/\/$/, "");
   const url = new URL(request.url);
   const host = request.headers.get("x-forwarded-host") ?? url.host;
   const proto = request.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
-  return `${proto}://${host}`;
+  const fromRequest = `${proto}://${host}`;
+  const configured = process.env.REVIEW_APP_URL?.replace(/\/$/, "");
+  if (!configured) return fromRequest;
+  try {
+    if (new URL(configured).host === new URL(fromRequest).host) return configured;
+  } catch {
+    return fromRequest;
+  }
+  return fromRequest;
 }
 
 export function reviewsReturn(origin: string, params?: Record<string, string>) {

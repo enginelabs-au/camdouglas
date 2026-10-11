@@ -6,7 +6,7 @@ export type DestinationId =
   | "contact"
   | "reviews";
 
-export type ReviewProviderId = "github" | "google" | "linkedin";
+export type ReviewProviderId = "github" | "linkedin";
 
 export type Vec3 = [number, number, number];
 export type Quat = [number, number, number, number];
@@ -40,7 +40,7 @@ export type SceneAsset = {
 };
 
 export type SocialLink = {
-  id: "patreon" | "linkedin" | "soundcloud" | "engine-labs" | "instagram";
+  id: "patreon" | "linkedin" | "github" | "soundcloud" | "engine-labs" | "instagram";
   label: string;
   href: string;
 };
@@ -82,5 +82,7 @@ export type Review = {
   quote: string;
   provider: ReviewProviderId;
   profileUrl: string;
+  avatar?: string;
+  rating: number;
   date?: string;
 };

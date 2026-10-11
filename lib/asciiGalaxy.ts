@@ -367,34 +367,58 @@ export function startAsciiGalaxy(
     raf = requestAnimationFrame(animate);
   }
 
-  let held = false;
+  const pointers = new Map<number, { x: number; y: number }>();
   let oldX = 0;
   let oldY = 0;
+  let pinch = 0;
 
   const onPointerDown = (e: PointerEvent) => {
-    held = true;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     oldX = e.clientX;
     oldY = e.clientY;
+    pinch = 0;
     state.auto = false;
     try {
-      canvas.setPointerCapture(e.pointerId);
+      root.setPointerCapture(e.pointerId);
     } catch {
-      // Synthetic or already-released pointers still rotate the view.
+      // iOS and already-released pointers still rotate from window move events.
     }
     canvas.style.cursor = "grabbing";
+    if (e.cancelable) e.preventDefault();
   };
 
   const onPointerMove = (e: PointerEvent) => {
-    if (!held) return;
-    state.targetYaw += (e.clientX - oldX) * 0.006;
-    state.targetPitch = clamp(state.targetPitch + (e.clientY - oldY) * 0.005, 0.1, 1.5);
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size >= 2) {
+      const pts = Array.from(pointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (pinch) state.targetZoom = clamp(state.targetZoom * (dist / pinch), 0.6, 2.5);
+      pinch = dist;
+      if (e.cancelable) e.preventDefault();
+      return;
+    }
+    state.targetYaw += (e.clientX - oldX) * 0.008;
+    state.targetPitch += (e.clientY - oldY) * 0.008;
     oldX = e.clientX;
     oldY = e.clientY;
+    if (e.pointerType === "touch" && e.cancelable) e.preventDefault();
   };
 
-  const onPointerUp = () => {
-    held = false;
-    canvas.style.cursor = "grab";
+  const onPointerUp = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) {
+      pinch = 0;
+      canvas.style.cursor = "grab";
+    } else {
+      const remaining = pointers.values().next().value;
+      if (remaining) {
+        oldX = remaining.x;
+        oldY = remaining.y;
+      }
+      pinch = 0;
+    }
   };
 
   const onWheel = (e: WheelEvent) => {
@@ -403,11 +427,11 @@ export function startAsciiGalaxy(
     state.auto = false;
   };
 
-  canvas.addEventListener("pointerdown", onPointerDown);
-  canvas.addEventListener("pointermove", onPointerMove);
-  canvas.addEventListener("pointerup", onPointerUp);
-  canvas.addEventListener("pointercancel", onPointerUp);
-  canvas.addEventListener("wheel", onWheel, { passive: false });
+  root.addEventListener("pointerdown", onPointerDown, { passive: false });
+  window.addEventListener("pointermove", onPointerMove, { passive: false });
+  window.addEventListener("pointerup", onPointerUp);
+  window.addEventListener("pointercancel", onPointerUp);
+  root.addEventListener("wheel", onWheel, { passive: false });
 
   const ro = new ResizeObserver(resize);
   ro.observe(root);
@@ -439,11 +463,11 @@ export function startAsciiGalaxy(
     destroy() {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerUp);
-      canvas.removeEventListener("wheel", onWheel);
+      root.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
+      root.removeEventListener("wheel", onWheel);
     },
   };
 }

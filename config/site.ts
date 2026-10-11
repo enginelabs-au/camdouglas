@@ -16,20 +16,11 @@ export const site = {
 export const socialLinks: SocialLink[] = [
   { id: "patreon", label: "Patreon", href: "https://www.patreon.com/cw/campbelldouglas" },
   { id: "linkedin", label: "LinkedIn", href: "https://www.linkedin.com/in/camjdouglas/" },
+  { id: "github", label: "GitHub", href: "https://github.com/cam-douglas" },
   { id: "soundcloud", label: "SoundCloud", href: "https://soundcloud.com/paritystate" },
   { id: "engine-labs", label: "Engine Labs", href: "https://enginelabs.com.au" },
   { id: "instagram", label: "Instagram", href: "https://www.instagram.com/camsquam/" },
 ];
-
-export const about = {
-  headline: "About",
-  lede: "Sydney-based music producer, trained audio engineer, DJ and entrepreneur.",
-  paragraphs: [
-    "Cam Douglas works across mixing, mastering and music production, with a particular focus on house, drum and bass, and experimental electronic music. His experience includes Universal Music and professional recording facilities including Forbes Street Studios.",
-    "He is Ableton-certified, and works with Ableton Live, Logic Pro, FL Studio and GarageBand. Independently he releases music as Parity State and founded Hit Sync Club, a digital-first independent record label and distribution company.",
-    "He also founded Engine Labs, an AI automation and consultancy agency. His professional interests sit between audio engineering, independent artistry, technology, operational systems and creative experimentation.",
-  ],
-};
 
 export const engineLabs = {
   headline: "Engine Labs",
@@ -47,5 +38,5 @@ export const productionCopy = {
 
 export const contactCopy = {
   headline: "Contact",
-  lede: "For music production, Engine Labs, or a direct note.",
+  lede: "For music production, software engineering, or a direct note.",
 };
