@@ -1,0 +1,379 @@
+<div id="ascii-galaxy-only" style="position:relative;width:100%;height:100vh;overflow:hidden;background:#03050a;">
+  <canvas id="ascii-galaxy-canvas" style="display:block;width:100%;height:100%;touch-action:none;cursor:grab;"></canvas>
+</div>
+
+<script>
+(() => {
+  const root = document.getElementById("ascii-galaxy-only");
+  const canvas = document.getElementById("ascii-galaxy-canvas");
+  const ctx = canvas.getContext("2d");
+  if (!root || !canvas || !ctx) return;
+
+  const TAU = Math.PI * 2;
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+  let seed = 24171;
+  function rand() {
+    seed = (1664525 * seed + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+
+  function gauss() {
+    return Math.sqrt(-2 * Math.log(Math.max(rand(), 0.000001))) * Math.cos(TAU * rand());
+  }
+
+  const ramp = " .,:;+=*oO#%@$";
+  const palette = [
+    [177, 194, 225],
+    [105, 146, 205],
+    [255, 211, 151],
+    [233, 144, 105],
+    [240, 169, 92],
+    [254, 227, 167],
+    [105, 120, 166],
+    [247, 246, 230]
+  ];
+
+  const arms = [];
+  const halo = [];
+  const disk = [];
+  const back = [];
+  const systems = [];
+
+  for (let i = 0; i < 3500; i++) {
+    let r = clamp(0.18 + Math.pow(rand(), 0.72) * 3.1, 0.18, 3.3);
+    let arm = Math.floor(rand() * 4);
+    let angle = arm * TAU / 4 + Math.log(r / 0.25) * 2.9 + gauss() * (0.16 + 0.08 * r);
+    let b = rand();
+    arms.push({
+      r,
+      a: angle,
+      z: gauss() * (0.024 + 0.02 * r),
+      col: b < 0.23 ? 1 : b < 0.4 ? 2 : b < 0.44 ? 3 : 0,
+      v: 0.18 + rand() * 0.72
+    });
+  }
+
+  for (let i = 0; i < 530; i++) {
+    let r = Math.abs(gauss()) * 0.76;
+    halo.push({
+      r,
+      a: rand() * TAU,
+      z: gauss() * 0.16,
+      col: rand() < 0.18 ? 2 : 6,
+      v: 0.13 + rand() * 0.43
+    });
+  }
+
+  for (let i = 0; i < 850; i++) {
+    let r = 0.16 + Math.sqrt(rand()) * 0.51;
+    disk.push({
+      r,
+      a: rand() * TAU,
+      z: gauss() * 0.012,
+      v: 0.45 + rand() * 0.58,
+      col: rand() < 0.45 ? 4 : 5
+    });
+  }
+
+  for (let i = 0; i < 330; i++) {
+    back.push({
+      u: rand(),
+      v: rand(),
+      phase: rand(),
+      brightness: 0.13 + rand() * 0.42,
+      col: rand() < 0.25 ? 1 : 6
+    });
+  }
+
+  for (let i = 0; i < 6; i++) {
+    let r = 0.85 + i * 0.32;
+    let a = i * 2.34 + 0.4;
+    let planets = [];
+    for (let p = 0; p < 1 + (i % 3); p++) {
+      let semi = 0.11 + p * 0.065 + rand() * 0.035;
+      let e = 0.06 + rand() * 0.24;
+      planets.push({
+        a: semi,
+        e,
+        n: Math.sqrt(0.0006 / Math.pow(semi, 3)),
+        phase: rand() * TAU,
+        node: rand() * TAU,
+        incl: 0.25 + rand() * 0.7,
+        col: (i + p) % 4
+      });
+    }
+    systems.push({
+      r,
+      a,
+      planets,
+      col: i % 3 === 0 ? 7 : i % 3 === 1 ? 1 : 2
+    });
+  }
+
+  let W = 700;
+  let H = 500;
+  let dpr = 1;
+  let font = 11;
+  let cw = 7;
+  let ch = 13;
+  let cols = 100;
+  let rows = 40;
+  let energy, colID, priority;
+
+  const state = {
+    t: 0,
+    velocity: 1,
+    paused: false,
+    yaw: 0.35,
+    targetYaw: 0.35,
+    pitch: 0.83,
+    targetPitch: 0.83,
+    zoom: 1,
+    targetZoom: 1,
+    auto: true,
+    frame: 0,
+    last: 0
+  };
+
+  function resize() {
+    const rect = root.getBoundingClientRect();
+    W = Math.max(300, rect.width);
+    H = Math.max(320, rect.height);
+    dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    font = clamp(W / 108, 9.2, 12.6);
+    cw = font * 0.64;
+    ch = font * 1.14;
+    cols = Math.ceil(W / cw);
+    rows = Math.ceil(H / ch);
+
+    energy = new Float32Array(cols * rows);
+    priority = new Float32Array(cols * rows);
+    colID = new Uint8Array(cols * rows);
+
+    draw();
+  }
+
+  function galaxyOmega(r) {
+    return Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
+  }
+
+  function project(x, y, z) {
+    let c = Math.cos(state.yaw), s = Math.sin(state.yaw);
+    let xx = x * c - y * s;
+    let yy = x * s + y * c;
+
+    let cp = Math.cos(state.pitch), sp = Math.sin(state.pitch);
+    let zz = yy * sp + z * cp;
+    let dy = yy * cp - z * sp;
+
+    let scale = Math.min(W / 6.9, H / 3.5) * state.zoom * 7 / (7 + 0.4 * zz);
+    return {
+      x: W * 0.50 + xx * scale,
+      y: H * 0.51 + dy * scale,
+      scale
+    };
+  }
+
+  function put(x, y, v, col) {
+    let cx = Math.floor(x / cw);
+    let cy = Math.floor(y / ch);
+    if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) return;
+    let k = cy * cols + cx;
+    energy[k] = Math.min(2.5, energy[k] + v);
+    if (v > priority[k]) {
+      priority[k] = v;
+      colID[k] = col;
+    }
+  }
+
+  function solveE(M, e) {
+    let E = M;
+    for (let i = 0; i < 5; i++) {
+      E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+  }
+
+  function draw() {
+    if (!energy) return;
+    energy.fill(0);
+    priority.fill(0);
+    colID.fill(0);
+
+    const t = state.t;
+
+    for (const p of back) {
+      put(
+        (p.u * W + Math.sin(state.yaw) * p.phase * 35 + W) % W,
+        (p.v * H + Math.cos(state.pitch) * p.phase * 15 + H) % H,
+        p.brightness * 0.43,
+        p.col
+      );
+    }
+
+    for (const p of arms) {
+      let a = p.a + t * galaxyOmega(p.r);
+      let v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
+      put(v.x, v.y, p.v * (1.15 - 0.17 * p.r), p.col);
+    }
+
+    for (const p of halo) {
+      let a = p.a + t * galaxyOmega(p.r) * 0.8;
+      let v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
+      put(v.x, v.y, p.v, p.col);
+    }
+
+    for (const p of disk) {
+      let a = p.a + t * 0.034 / Math.pow(p.r, 1.5);
+      let v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
+      let doppler = clamp(0.86 + 0.43 * Math.cos(a - state.yaw), 0.35, 1.3);
+      put(v.x, v.y, p.v * doppler, p.col);
+    }
+
+    const center = project(0, 0, 0);
+    const rad = 0.17 * center.scale;
+
+    for (let row = 0; row < rows; row++) {
+      let y = (row + 0.5) * ch - center.y;
+      if (Math.abs(y) > rad) continue;
+      for (let col = 0; col < cols; col++) {
+        let x = (col + 0.5) * cw - center.x;
+        if (x * x + y * y < rad * rad * 0.85) {
+          let k = row * cols + col;
+          energy[k] = 0;
+          priority[k] = 0;
+        }
+      }
+    }
+
+    for (let a = 0; a < TAU; a += 0.045) {
+      put(center.x + rad * Math.cos(a), center.y + rad * Math.sin(a), 0.7 + 0.45 * Math.max(0, Math.cos(a - state.yaw)), a > Math.PI ? 5 : 4);
+    }
+
+    for (let a = 3.43; a < 6.05; a += 0.07) {
+      put(center.x + rad * 1.48 * Math.cos(a), center.y + rad * 1.48 * Math.sin(a), 0.27, 7);
+    }
+
+    for (const s of systems) {
+      let a = s.a + t * galaxyOmega(s.r);
+      let x = s.r * Math.cos(a);
+      let y = s.r * Math.sin(a);
+      let star = project(x, y, 0.03);
+      put(star.x, star.y, 2.5, s.col);
+
+      for (const p of s.planets) {
+        let M = p.phase + t * p.n;
+        let E = solveE(M, p.e);
+        let ox = p.a * (Math.cos(E) - p.e);
+        let oy = p.a * Math.sqrt(1 - p.e * p.e) * Math.sin(E);
+        let cs = Math.cos(p.node);
+        let sn = Math.sin(p.node);
+
+        let xx = x + ox * cs - oy * sn;
+        let yy = y + (ox * sn + oy * cs) * Math.cos(p.incl);
+        let zz = (ox * sn + oy * cs) * Math.sin(p.incl);
+        let pt = project(xx, yy, zz);
+        put(pt.x, pt.y, 1.8, p.col);
+
+        for (let j = 0; j < 22; j++) {
+          let q = j * TAU / 22;
+          let ex = p.a * (Math.cos(q) - p.e);
+          let ey = p.a * Math.sqrt(1 - p.e * p.e) * Math.sin(q);
+          let po = project(
+            x + ex * cs - ey * sn,
+            y + (ex * sn + ey * cs) * Math.cos(p.incl),
+            (ex * sn + ey * cs) * Math.sin(p.incl)
+          );
+          put(po.x, po.y, 0.11, 6);
+        }
+      }
+    }
+
+    ctx.fillStyle = "#03050a";
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = font + "px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        let k = y * cols + x;
+        let v = energy[k];
+        if (v < 0.13) continue;
+
+        let idx = clamp(
+          Math.floor(Math.pow(Math.min(v, 1.8) / 1.8, 0.68) * (ramp.length - 1)),
+          1,
+          ramp.length - 1
+        );
+
+        const rgb = palette[colID[k]];
+        const alpha = clamp(0.20 + v * 0.54, 0.22, 1);
+        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+        ctx.fillText(ramp[idx], (x + 0.5) * cw, (y + 0.5) * ch);
+      }
+    }
+  }
+
+  function animate(now) {
+    const dt = Math.min((now - (state.last || now)) / 1000, 0.065);
+    state.last = now;
+
+    if (!state.paused) {
+      state.t += dt * state.velocity;
+      if (state.auto) state.targetYaw += dt * 0.014;
+    }
+
+    state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
+    state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);
+    state.zoom += (state.targetZoom - state.zoom) * Math.min(1, dt * 5);
+
+    if (now - state.frame > 34 && !document.hidden) {
+      draw();
+      state.frame = now;
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  let held = false;
+  let oldX = 0;
+  let oldY = 0;
+
+  canvas.addEventListener("pointerdown", e => {
+    held = true;
+    oldX = e.clientX;
+    oldY = e.clientY;
+    state.auto = false;
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", e => {
+    if (!held) return;
+    state.targetYaw += (e.clientX - oldX) * 0.006;
+    state.targetPitch = clamp(state.targetPitch + (e.clientY - oldY) * 0.005, 0.1, 1.5);
+    oldX = e.clientX;
+    oldY = e.clientY;
+  });
+
+  canvas.addEventListener("pointerup", () => held = false);
+  canvas.addEventListener("pointercancel", () => held = false);
+
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    state.targetZoom = clamp(state.targetZoom * Math.exp(-e.deltaY * 0.001), 0.6, 2.5);
+  }, { passive: false });
+
+  const ro = new ResizeObserver(resize);
+  ro.observe(root);
+
+  resize();
+  requestAnimationFrame(animate);
+})();
+</script>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Warm interior fallback">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f4efe6"/>
+      <stop offset="1" stop-color="#cbb89a"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#b08968"/>
+      <stop offset="1" stop-color="#7a5840"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#d7c4ae"/>
+  <rect x="180" y="90" width="1240" height="520" fill="url(#sky)"/>
+  <rect x="0" y="610" width="1600" height="290" fill="url(#floor)"/>
+  <rect x="430" y="150" width="280" height="360" fill="#e7d7c2" opacity="0.85"/>
+  <rect x="890" y="150" width="280" height="360" fill="#e7d7c2" opacity="0.7"/>
+  <rect x="250" y="470" width="420" height="28" fill="#6e4b32"/>
+  <rect x="980" y="500" width="220" height="110" fill="#5c4636"/>
+</svg>
