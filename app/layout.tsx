@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bebas_Neue, Inter, Libre_Baskerville } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { site, socialLinks } from "@/config/site";
-import { homeTitle, ogImage } from "@/lib/seo";
+import { homeDescription, homeTitle, ogImage, socialDescription, socialTitle } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -37,13 +37,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: { default: homeTitle, template: `%s | ${site.name}` },
-  description: site.description,
+  description: homeDescription,
   applicationName: site.name,
   authors: [{ name: site.name, url: site.url }],
   alternates: { canonical: "/" },
   openGraph: {
-    title: homeTitle,
-    description: site.description,
+    title: socialTitle,
+    description: socialDescription,
     url: "/",
     siteName: site.name,
     locale: "en_AU",
@@ -52,8 +52,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: homeTitle,
-    description: site.description,
+    title: socialTitle,
+    description: socialDescription,
     images: [ogImage.url],
   },
 };
@@ -77,7 +77,7 @@ const structuredData = {
       name: site.name,
       url: site.url,
       description: site.description,
-      jobTitle: "Creative technologist and founder",
+      jobTitle: "Music producer, software engineer and founder",
       image: `${site.url}${ogImage.url}`,
       address: { "@type": "PostalAddress", addressLocality: "Sydney", addressCountry: "AU" },
       knowsAbout: ["Music production", "Audio engineering", "DJing", "Software engineering", "Creative technology"],

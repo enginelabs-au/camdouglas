@@ -1,9 +1,9 @@
-import { pageMetadata } from "@/lib/seo";
+import { homeDescription, pageMetadata, socialDescription, socialTitle } from "@/lib/seo";
 
 export const metadata = pageMetadata({
   path: "/",
-  description:
-    "Tinkerer, Solopreneur, and Creative Technologist who makes stuff that occasionally works. Based in Sydney, Australia.",
+  description: homeDescription,
+  social: { title: socialTitle, description: socialDescription },
 });
 
 export default function Page() {
