@@ -4,7 +4,7 @@ export const metadata = pageMetadata({
   path: "/contact",
   title: "Contact",
   description:
-    "Contact Cam Douglas about music production or software engineering. Send an email or book a meeting any day, 6am to 12am Sydney time.",
+    "Contact Cam Douglas about music production or software engineering. Send an email or book a meeting.",
 });
 
 export default function Page() {

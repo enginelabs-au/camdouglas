@@ -8,7 +8,7 @@ export const ogImage = {
   alt: "Cam Douglas: an ASCII galaxy with the name CAM over it.",
 };
 
-export const homeTitle = "Cam Douglas | Music producer, audio engineer and founder";
+export const homeTitle = "Cam Douglas | Tinkerer, Solopreneur and Creative Technologist";
 
 type PageMeta = {
   path: string;

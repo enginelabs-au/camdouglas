@@ -77,7 +77,7 @@ const structuredData = {
       name: site.name,
       url: site.url,
       description: site.description,
-      jobTitle: "Music producer and founder",
+      jobTitle: "Creative technologist and founder",
       image: `${site.url}${ogImage.url}`,
       address: { "@type": "PostalAddress", addressLocality: "Sydney", addressCountry: "AU" },
       knowsAbout: ["Music production", "Audio engineering", "DJing", "Software engineering", "Creative technology"],

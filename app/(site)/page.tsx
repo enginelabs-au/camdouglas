@@ -3,7 +3,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   path: "/",
   description:
-    "Music producer, audio engineer, DJ and founder working across sound, software and creative technology. Based in Sydney, Australia.",
+    "Tinkerer, Solopreneur, and Creative Technologist who makes stuff that occasionally works. Based in Sydney, Australia.",
 });
 
 export default function Page() {

@@ -1,6 +1,6 @@
 import type { SocialLink } from "@/config/types";
 
-// Google Calendar appointment schedule (every day, 6am to 12am Sydney time).
+// Google Calendar appointment schedule.
 const bookingHref = "https://calendar.app.google/8AmkANGSGYHhrXPUA";
 
 export const site = {
@@ -9,9 +9,9 @@ export const site = {
   brandWord: "CAM",
   statement: "Music, technology and the spaces in between.",
   tagline: "Tinkerer, Solopreneur, and Creative Technologist who makes stuff that occasionally works.",
-  // Search results and link previews use this plainer line, not the tagline.
+  // Search results and link previews use the tagline too.
   description:
-    "Music producer, audio engineer, DJ and founder working across sound, software and creative technology.",
+    "Tinkerer, Solopreneur, and Creative Technologist who makes stuff that occasionally works.",
   musicLabels: ["Music producer", "Audio engineer", "DJ"],
   softwareLabels: ["Founder", "Software engineer"],
   windowLine: "Drag to look around the galaxy.",
@@ -61,8 +61,8 @@ export const contactCopy = {
   headline: "Contact",
   lede: "For music production, software engineering, or a direct note.",
   booking: {
+    heading: "Meet me",
     label: "Book a meeting",
-    hours: "Every day, 6am to 12am Sydney time.",
     href: bookingHref,
   },
 };

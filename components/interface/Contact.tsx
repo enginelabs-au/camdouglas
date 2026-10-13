@@ -13,8 +13,7 @@ export function Contact() {
       </p>
       {booking.href ? (
         <section className="stack" aria-labelledby="booking-heading">
-          <h3 id="booking-heading">Book a meeting</h3>
-          <p className="note">{booking.hours}</p>
+          <h3 id="booking-heading">{booking.heading}</h3>
           <a className="offer-cta booking-cta" href={booking.href} target="_blank" rel="noreferrer">
             {booking.label}
           </a>
