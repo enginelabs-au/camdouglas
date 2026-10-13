@@ -6,6 +6,9 @@ import type { Review } from "@/config/types";
 import type { ReviewIdentity } from "@/lib/reviewIdentity";
 
 const BLOB_PREFIX = "reviews/published/";
+const INBOX_PREFIX = "reviews/inbox/";
+const ARCHIVE_PREFIX = "reviews/archive/";
+const SNAPSHOT_PREFIX = "reviews/snapshots/";
 const SESSION_PREFIX = "reviews/sessions/";
 const LOCAL_DIR = path.join(process.cwd(), ".data", "reviews");
 const LOCAL_SESSION_DIR = path.join(process.cwd(), ".data", "review-sessions");
@@ -58,14 +61,18 @@ async function readBlob(): Promise<Review[]> {
   return reviews.filter(isReview);
 }
 
-async function writeBlob(review: Review) {
-  await put(blobPath(review.id), JSON.stringify(review), {
+async function putReviewJson(pathname: string, review: Review | Review[], overwrite: boolean) {
+  await put(pathname, JSON.stringify(review), {
     access: "public",
     addRandomSuffix: false,
-    allowOverwrite: true,
+    allowOverwrite: overwrite,
     contentType: "application/json",
     cacheControlMaxAge: 0,
   });
+}
+
+async function writeBlob(review: Review) {
+  await putReviewJson(blobPath(review.id), review, false);
 }
 
 async function blobHas(id: string) {
@@ -112,14 +119,48 @@ export async function listApprovedReviews(): Promise<Review[]> {
 
 export async function publishReview(review: Review) {
   if (blobReady()) {
-    if (await blobHas(review.id)) return { review, created: false };
+    if (await blobHas(review.id)) {
+      await archiveReview(review);
+      return { review, created: false };
+    }
     await writeBlob(review);
+    await archiveReview(review);
     return { review, created: true };
   }
   const current = await readLocal();
   if (current.some((item) => item.id === review.id)) return { review, created: false };
   await writeLocal(review);
   return { review, created: true };
+}
+
+export async function saveInboxReview(review: Review) {
+  if (!blobReady()) return;
+  try {
+    await putReviewJson(`${INBOX_PREFIX}${review.id}.json`, review, false);
+  } catch (error) {
+    console.error("Review inbox save failed", error);
+  }
+}
+
+export async function archiveReview(review: Review) {
+  if (!blobReady()) return;
+  try {
+    await putReviewJson(`${ARCHIVE_PREFIX}${review.id}.json`, review, false);
+  } catch {
+    // Already archived. Never overwrite a kept copy.
+  }
+}
+
+export async function snapshotPublishedReviews() {
+  const reviews = await listApprovedReviews();
+  if (!blobReady()) return { reviews, stored: false };
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await putReviewJson(`${SNAPSHOT_PREFIX}${day}.json`, reviews, false);
+    return { reviews, stored: true };
+  } catch {
+    return { reviews, stored: false };
+  }
 }
 
 function safeBlobId(value: string) {

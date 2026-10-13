@@ -2,7 +2,7 @@ import { site } from "@/config/site";
 import { displayHandle, reviewProviders } from "@/config/reviews";
 import { approvalToken, approvalUrl, parseRating, reviewFromIdentity } from "@/lib/reviewApproval";
 import { appOrigin, readIdentity } from "@/lib/reviewIdentity";
-import { hydrateIdentity, listApprovedReviews } from "@/lib/reviewStore";
+import { hydrateIdentity, listApprovedReviews, saveInboxReview } from "@/lib/reviewStore";
 
 export const runtime = "nodejs";
 
@@ -108,6 +108,7 @@ export async function POST(request: Request) {
   if (rating === null) return Response.json({ error: "Choose a star rating." }, { status: 400 });
 
   const review = reviewFromIdentity(identity, quote, rating);
+  await saveInboxReview(review);
   const token = approvalToken(review);
   const approveHref = approvalUrl(appOrigin(request), token);
   const username = displayHandle(review);
