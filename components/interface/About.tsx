@@ -1,23 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { aboutTabs, type AboutTabId } from "@/config/about";
 
 export function About() {
   const [tab, setTab] = useState<AboutTabId>("music");
   const section = aboutTabs.find((item) => item.id === tab) ?? aboutTabs[0];
 
+  function onTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const index = aboutTabs.findIndex((item) => item.id === tab);
+    let next = index;
+    if (event.key === "ArrowRight") next = (index + 1) % aboutTabs.length;
+    if (event.key === "ArrowLeft") next = (index - 1 + aboutTabs.length) % aboutTabs.length;
+    if (event.key === "Home") next = 0;
+    if (event.key === "End") next = aboutTabs.length - 1;
+    const id = aboutTabs[next].id;
+    setTab(id);
+    document.getElementById(`about-tab-${id}`)?.focus();
+  }
+
   return (
     <article className="panel panel-wide">
       <p className="kicker">{section.kicker}</p>
       <h2>About</h2>
-      <div className="panel-tabs" role="tablist" aria-label="About sections">
+      <div className="panel-tabs" role="tablist" aria-label="About sections" onKeyDown={onTabKeyDown}>
         {aboutTabs.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
             id={`about-tab-${item.id}`}
+            tabIndex={tab === item.id ? 0 : -1}
             aria-selected={tab === item.id}
             aria-controls={`about-panel-${item.id}`}
             onClick={() => setTab(item.id)}

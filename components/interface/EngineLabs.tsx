@@ -1,10 +1,10 @@
 import { engines } from "@/config/engines";
-import { engineLabs } from "@/config/site";
+import { engineLabs, site } from "@/config/site";
 
 export function EngineLabs() {
   return (
     <article className="panel panel-wide">
-      <p className="kicker">Agency</p>
+      <p className="kicker">{site.softwareLabels.join(" · ")}</p>
       <h2>{engineLabs.headline}</h2>
       <p className="lede">{engineLabs.lede}</p>
       <p>{engineLabs.summary}</p>

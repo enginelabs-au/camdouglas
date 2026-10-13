@@ -16,17 +16,20 @@ const bebas = Bebas_Neue({
   display: "swap",
 });
 
+// Only used on review cards, so it loads when needed instead of delaying first paint.
 const reviewSerif = Libre_Baskerville({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-review",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#03050a",
 };
 
 export const metadata: Metadata = {
@@ -46,7 +49,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${inter.variable} ${bebas.variable} ${reviewSerif.variable}`}>
-      <body>{children}</body>
+      <body>
+        <noscript>
+          <style>{".boot{display:none}"}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }

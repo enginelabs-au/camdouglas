@@ -202,12 +202,18 @@ export function Reviews() {
               {status === "sending" ? "Sending" : "Submit"}
             </button>
             {status === "sent" ? (
-              <p className="note">Sent. Cam will check it before anything appears here.</p>
+              <p className="note" role="status">
+                Sent. Cam will check it before anything appears here.
+              </p>
             ) : null}
           </form>
         ) : null}
 
-        {error ? <p className="review-error">{error}</p> : null}
+        {error ? (
+          <p className="review-error" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <div className="provider-grid" role="group" aria-label="Review platforms">
           {reviewProviders.map((item) => (

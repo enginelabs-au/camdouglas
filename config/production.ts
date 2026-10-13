@@ -48,6 +48,7 @@ export const memberships: Membership[] = [
     ],
     href: patreonMembership,
     cta: "Join",
+    featured: true,
   },
   {
     id: "mentorship",
@@ -73,6 +74,7 @@ export const shopItems: ShopItem[] = [
     price: "A$129",
     summary: "One group consultation, written production guides, project files and exercises.",
     href: patreonShop,
+    featured: true,
   },
   {
     id: "mixing",

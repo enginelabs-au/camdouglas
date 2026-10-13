@@ -537,6 +537,59 @@ button.offer-cta {
   color: #000;
 }
 
+.offer-card.is-featured {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: #0e1220;
+}
+
+.offer-badge {
+  align-self: flex-start;
+  margin: 0 0 0.6rem;
+  padding: 0.14rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.audience {
+  margin-bottom: 0.3rem;
+}
+
+.first-step {
+  color: var(--ink);
+}
+
+.booking-cta {
+  max-width: 16rem;
+}
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 100dvh;
+  padding: 2rem;
+  text-align: center;
+}
+
+.not-found h1 {
+  font-family: var(--display);
+  font-size: clamp(2.6rem, 9vw, 5rem);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.not-found .offer-cta {
+  width: auto;
+  margin-top: 0.8rem;
+  padding: 0.52rem 1.4rem;
+}
+
 .offer-summary {
   margin: 0 0 0.7rem;
   font-size: 0.88rem;
@@ -839,8 +892,8 @@ button.offer-cta {
 .review-profile {
   display: inline-block;
   margin-top: 0.08rem;
-  font-size: 0.54rem;
-  color: rgba(247, 244, 239, 0.42);
+  font-size: 0.6rem;
+  color: rgba(247, 244, 239, 0.68);
   text-decoration: none;
 }
 
@@ -851,8 +904,8 @@ button.offer-cta {
 .review-date {
   display: block;
   margin-top: 0.08rem;
-  font-size: 0.54rem;
-  color: rgba(247, 244, 239, 0.42);
+  font-size: 0.6rem;
+  color: rgba(247, 244, 239, 0.68);
 }
 
 .star-rating {
@@ -1073,20 +1126,6 @@ button.offer-cta {
   margin-top: 0;
 }
 
-.camera-debug {
-  pointer-events: none;
-  position: fixed;
-  top: 4.5rem;
-  right: 1.6rem;
-  padding: 0.6rem 0.7rem;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid var(--line);
-  border-radius: 0.75rem;
-  font-size: 0.72rem;
-  white-space: pre;
-  backdrop-filter: blur(16px);
-}
-
 @media (max-width: 860px), (pointer: coarse) {
   .site-header {
     top: max(0.7rem, env(safe-area-inset-top));
@@ -1211,6 +1250,12 @@ button.offer-cta {
 @media (max-width: 480px) {
   .hero h1 {
     font-size: clamp(2.8rem, 20vw, 4.2rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .hero-lede {
+    -webkit-line-clamp: 3;
   }
 }
 

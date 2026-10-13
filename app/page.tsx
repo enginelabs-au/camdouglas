@@ -1,5 +1,5 @@
-import { ClientExperience } from "@/components/spatial/ClientExperience";
+import { SpatialShell } from "@/components/spatial/SpatialShell";
 
 export default function Page() {
-  return <ClientExperience />;
+  return <SpatialShell />;
 }

@@ -81,7 +81,7 @@ export function StarRating({
       ref={rootRef}
       className={className}
       role={readOnly ? "img" : "slider"}
-      aria-label="Rating"
+      aria-label={readOnly ? label : "Rating"}
       aria-valuemin={readOnly ? undefined : 0.5}
       aria-valuemax={readOnly ? undefined : 5}
       aria-valuenow={readOnly ? undefined : value || 0.5}

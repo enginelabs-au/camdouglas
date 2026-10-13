@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { site } from "@/config/site";
+
+export default function NotFound() {
+  return (
+    <main className="not-found">
+      <h1>Lost in the galaxy</h1>
+      <p>That page does not exist.</p>
+      <Link href="/" className="offer-cta">
+        Back to {site.name}
+      </Link>
+    </main>
+  );
+}

@@ -45,13 +45,24 @@ export function startAsciiGalaxy(
     [247, 246, 230],
   ] as const;
 
-  const arms: Array<{ r: number; a: number; z: number; col: number; v: number }> = [];
-  const halo: Array<{ r: number; a: number; z: number; col: number; v: number }> = [];
-  const disk: Array<{ r: number; a: number; z: number; col: number; v: number }> = [];
+  // Pre-built fill styles (palette x quantised alpha) so the draw loop never builds strings.
+  const ALPHA_STEPS = 24;
+  const styles: string[] = [];
+  for (const rgb of palette) {
+    for (let i = 0; i < ALPHA_STEPS; i++) {
+      styles.push(`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(i / (ALPHA_STEPS - 1)).toFixed(3)})`);
+    }
+  }
+
+  type Particle = { r: number; a: number; z: number; col: number; v: number; om: number };
+  const arms: Particle[] = [];
+  const halo: Particle[] = [];
+  const disk: Particle[] = [];
   const back: Array<{ u: number; v: number; phase: number; brightness: number; col: number }> = [];
   const systems: Array<{
     r: number;
     a: number;
+    om: number;
     col: number;
     planets: Array<{
       a: number;
@@ -64,6 +75,11 @@ export function startAsciiGalaxy(
     }>;
   }> = [];
 
+  // Angular speeds depend only on radius, so they are computed once here, not every frame.
+  function galaxyOmega(r: number) {
+    return Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
+  }
+
   for (let i = 0; i < 3500; i++) {
     const r = clamp(0.18 + Math.pow(rand(), 0.72) * 3.1, 0.18, 3.3);
     const arm = Math.floor(rand() * 4);
@@ -75,6 +91,7 @@ export function startAsciiGalaxy(
       z: gauss() * (0.024 + 0.02 * r),
       col: b < 0.23 ? 1 : b < 0.4 ? 2 : b < 0.44 ? 3 : 0,
       v: 0.18 + rand() * 0.72,
+      om: galaxyOmega(r),
     });
   }
 
@@ -86,6 +103,7 @@ export function startAsciiGalaxy(
       z: gauss() * 0.16,
       col: rand() < 0.18 ? 2 : 6,
       v: 0.13 + rand() * 0.43,
+      om: galaxyOmega(r) * 0.8,
     });
   }
 
@@ -97,6 +115,7 @@ export function startAsciiGalaxy(
       z: gauss() * 0.012,
       v: 0.45 + rand() * 0.58,
       col: rand() < 0.45 ? 4 : 5,
+      om: 0.034 / Math.pow(r, 1.5),
     });
   }
 
@@ -130,10 +149,19 @@ export function startAsciiGalaxy(
     systems.push({
       r,
       a,
+      om: galaxyOmega(r),
       planets,
       col: i % 3 === 0 ? 7 : i % 3 === 1 ? 1 : 2,
     });
   }
+
+  const QUALITY = [
+    { dpr: 1.6, interval: 34 },
+    { dpr: 1.25, interval: 50 },
+    { dpr: 1, interval: 67 },
+  ] as const;
+  const lowPower = (navigator.hardwareConcurrency || 8) <= 4;
+  let quality = lowPower ? 1 : 0;
 
   let W = 700;
   let H = 500;
@@ -163,25 +191,31 @@ export function startAsciiGalaxy(
     last: 0,
   };
 
-  function galaxyOmega(r: number) {
-    return Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
+  // Trig for the current view, refreshed once per frame instead of once per particle.
+  let c = 1;
+  let s = 0;
+  let cp = 1;
+  let sp = 0;
+  let baseScale = 1;
+  function prepareView() {
+    c = Math.cos(state.yaw);
+    s = Math.sin(state.yaw);
+    cp = Math.cos(state.pitch);
+    sp = Math.sin(state.pitch);
+    baseScale = Math.min(W / 6.9, H / 3.5) * state.zoom * 7;
   }
 
+  const out = { x: 0, y: 0, scale: 0 };
   function project(x: number, y: number, z: number) {
-    const c = Math.cos(state.yaw);
-    const s = Math.sin(state.yaw);
     const xx = x * c - y * s;
     const yy = x * s + y * c;
-    const cp = Math.cos(state.pitch);
-    const sp = Math.sin(state.pitch);
     const zz = yy * sp + z * cp;
     const dy = yy * cp - z * sp;
-    const scale = ((Math.min(W / 6.9, H / 3.5) * state.zoom * 7) / (7 + 0.4 * zz));
-    return {
-      x: W * 0.5 + xx * scale,
-      y: H * 0.51 + dy * scale,
-      scale,
-    };
+    const scale = baseScale / (7 + 0.4 * zz);
+    out.x = W * 0.5 + xx * scale;
+    out.y = H * 0.51 + dy * scale;
+    out.scale = scale;
+    return out;
   }
 
   function put(x: number, y: number, v: number, col: number) {
@@ -212,6 +246,7 @@ export function startAsciiGalaxy(
     colID.fill(0);
 
     const t = state.t;
+    prepareView();
 
     for (const p of back) {
       put(
@@ -223,25 +258,26 @@ export function startAsciiGalaxy(
     }
 
     for (const p of arms) {
-      const a = p.a + t * galaxyOmega(p.r);
+      const a = p.a + t * p.om;
       const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
       put(v.x, v.y, p.v * (1.15 - 0.17 * p.r), p.col);
     }
 
     for (const p of halo) {
-      const a = p.a + t * galaxyOmega(p.r) * 0.8;
+      const a = p.a + t * p.om;
       const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
       put(v.x, v.y, p.v, p.col);
     }
 
     for (const p of disk) {
-      const a = p.a + t * 0.034 / Math.pow(p.r, 1.5);
+      const a = p.a + t * p.om;
       const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
       const doppler = clamp(0.86 + 0.43 * Math.cos(a - state.yaw), 0.35, 1.3);
       put(v.x, v.y, p.v * doppler, p.col);
     }
 
-    const center = project(0, 0, 0);
+    const origin = project(0, 0, 0);
+    const center = { x: origin.x, y: origin.y, scale: origin.scale };
     const rad = 0.17 * center.scale;
 
     for (let row = 0; row < rows; row++) {
@@ -271,7 +307,7 @@ export function startAsciiGalaxy(
     }
 
     for (const s of systems) {
-      const a = s.a + t * galaxyOmega(s.r);
+      const a = s.a + t * s.om;
       const x = s.r * Math.cos(a);
       const y = s.r * Math.sin(a);
       const star = project(x, y, 0.03);
@@ -311,6 +347,7 @@ export function startAsciiGalaxy(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
+    let lastStyle = -1;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         const k = y * cols + x;
@@ -321,9 +358,12 @@ export function startAsciiGalaxy(
           1,
           ramp.length - 1,
         );
-        const rgb = palette[colID[k]];
         const alpha = clamp(0.2 + v * 0.54, 0.22, 1);
-        ctx.fillStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`;
+        const style = colID[k] * ALPHA_STEPS + Math.round(alpha * (ALPHA_STEPS - 1));
+        if (style !== lastStyle) {
+          ctx.fillStyle = styles[style];
+          lastStyle = style;
+        }
         ctx.fillText(ramp[idx], (x + 0.5) * cw, (y + 0.5) * ch);
       }
     }
@@ -334,7 +374,7 @@ export function startAsciiGalaxy(
     const rect = root.getBoundingClientRect();
     W = Math.max(300, rect.width);
     H = Math.max(320, rect.height);
-    dpr = Math.min(window.devicePixelRatio || 1, 1.6);
+    dpr = Math.min(window.devicePixelRatio || 1, QUALITY[quality].dpr);
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -349,9 +389,25 @@ export function startAsciiGalaxy(
     draw();
   }
 
+  // Self-tuning quality: if this device cannot keep up, step down resolution and frame rate.
+  // It only ever steps down, so it cannot flap back and forth.
   let raf = 0;
+  let dirty = true;
+  let slowFrames = 0;
+  let sinceStep = 0;
+  let avgTick = 16;
+  let avgDraw = 4;
+
+  function stepDown() {
+    if (quality >= QUALITY.length - 1) return;
+    quality += 1;
+    sinceStep = 0;
+    resize();
+  }
+
   function animate(now: number) {
-    const dt = Math.min((now - (state.last || now)) / 1000, 0.065);
+    const tick = now - (state.last || now);
+    const dt = Math.min(tick / 1000, 0.065);
     state.last = now;
     if (!state.paused) {
       state.t += dt * state.velocity;
@@ -360,9 +416,32 @@ export function startAsciiGalaxy(
     state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
     state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);
     state.zoom += (state.targetZoom - state.zoom) * Math.min(1, dt * 5);
-    if (now - state.frame > 34 && !document.hidden) {
+
+    const settled =
+      Math.abs(state.targetYaw - state.yaw) < 0.0004 &&
+      Math.abs(state.targetPitch - state.pitch) < 0.0004 &&
+      Math.abs(state.targetZoom - state.zoom) < 0.0004;
+    const idle = state.paused && settled && !dirty;
+
+    if (now - state.frame > QUALITY[quality].interval && !document.hidden && !idle) {
+      const began = performance.now();
       draw();
+      dirty = false;
       state.frame = now;
+
+      // Ignore the long gaps left by background tabs; they say nothing about device speed.
+      if (tick > 0 && tick < 400) {
+        avgTick += (tick - avgTick) * 0.05;
+        avgDraw += (performance.now() - began - avgDraw) * 0.05;
+        sinceStep += 1;
+        // 45ms is well below 30fps, so phones that cap at 30fps in battery saver stay untouched.
+        if (sinceStep > 90 && (avgTick > 45 || avgDraw > 12)) slowFrames += 1;
+        else slowFrames = 0;
+        if (slowFrames > 20) {
+          slowFrames = 0;
+          stepDown();
+        }
+      }
     }
     raf = requestAnimationFrame(animate);
   }
@@ -466,6 +545,7 @@ export function startAsciiGalaxy(
 
   return {
     setView(view, auto = false) {
+      dirty = true;
       state.targetYaw = view.yaw;
       state.targetPitch = view.pitch;
       state.targetZoom = view.zoom;
@@ -485,6 +565,7 @@ export function startAsciiGalaxy(
     },
     setPaused(paused) {
       state.paused = paused;
+      dirty = true;
     },
     destroy() {
       cancelAnimationFrame(raf);

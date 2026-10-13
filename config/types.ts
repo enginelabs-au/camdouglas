@@ -64,6 +64,7 @@ export type Membership = {
   includes: string[];
   href: string;
   cta: string;
+  featured?: boolean;
 };
 
 export type ShopItem = {
@@ -73,6 +74,7 @@ export type ShopItem = {
   summary: string;
   href: string;
   memberOnly?: boolean;
+  featured?: boolean;
 };
 
 export type Review = {

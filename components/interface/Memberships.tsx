@@ -2,11 +2,13 @@ import { memberships } from "@/config/production";
 import { ExternalLink } from "@/components/interface/ExternalLink";
 
 export function Memberships() {
+  const plans = memberships.filter((item) => !item.featured);
+
   return (
     <section className="stack" aria-labelledby="memberships-heading">
-      <h3 id="memberships-heading">Choose your membership</h3>
+      <h3 id="memberships-heading">More memberships</h3>
       <ul className="offer-grid">
-        {memberships.map((item) => (
+        {plans.map((item) => (
           <li key={item.id} className="offer-card">
             <h4>{item.name}</h4>
             <p className="offer-price">

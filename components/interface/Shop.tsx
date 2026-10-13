@@ -2,12 +2,12 @@ import { shopItems } from "@/config/production";
 import { ExternalLink } from "@/components/interface/ExternalLink";
 
 export function Shop() {
-  const offers = shopItems.filter((item) => !item.memberOnly);
+  const offers = shopItems.filter((item) => !item.memberOnly && !item.featured);
   const addons = shopItems.filter((item) => item.memberOnly);
 
   return (
     <section className="stack" aria-labelledby="shop-heading">
-      <h3 id="shop-heading">Shop</h3>
+      <h3 id="shop-heading">More from the shop</h3>
       <ul className="offer-grid">
         {offers.map((item) => (
           <li key={item.id} className="offer-card">

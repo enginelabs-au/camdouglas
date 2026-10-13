@@ -5,8 +5,12 @@ export const site = {
   title: "Cam Douglas",
   brandWord: "CAM",
   statement: "Music, technology and the spaces in between.",
+  tagline: "Tinkerer, Solopreneur, and Creative Technologist who makes stuff that occasionally works.",
+  // Search results and link previews use this plainer line, not the tagline.
   description:
     "Music producer, audio engineer, DJ and founder working across sound, software and creative technology.",
+  musicLabels: ["Music producer", "Audio engineer", "DJ"],
+  softwareLabels: ["Founder", "Software engineer"],
   windowLine: "Drag to look around the galaxy.",
   location: "Sydney, Australia",
   email: "cam@enginelabs.com.au",
@@ -34,9 +38,22 @@ export const engineLabs = {
 export const productionCopy = {
   headline: "Music Production",
   lede: "Practical music production education through live consultations, professional resources and hands-on guidance.",
+  audience: "For producers who want professional knowledge without the industry gatekeeping.",
+  firstStep: {
+    before: "First step:",
+    label: "join The Studio Community for free",
+    after: "then pick an offer below.",
+    href: "https://www.patreon.com/cw/campbelldouglas/membership",
+  },
 };
 
 export const contactCopy = {
   headline: "Contact",
   lede: "For music production, software engineering, or a direct note.",
+  booking: {
+    label: "Book a meeting",
+    hours: "Every day, 6am to 12am Sydney time.",
+    // Paste the Google Calendar appointment schedule link here to show the button.
+    href: "",
+  },
 };

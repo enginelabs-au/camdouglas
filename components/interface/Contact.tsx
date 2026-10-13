@@ -1,6 +1,8 @@
 import { contactCopy, site } from "@/config/site";
 
 export function Contact() {
+  const { booking } = contactCopy;
+
   return (
     <article className="panel">
       <p className="kicker">Studio and agency</p>
@@ -9,6 +11,15 @@ export function Contact() {
       <p>
         <a href={`mailto:${site.email}`}>{site.email}</a>
       </p>
+      {booking.href ? (
+        <section className="stack" aria-labelledby="booking-heading">
+          <h3 id="booking-heading">Book a meeting</h3>
+          <p className="note">{booking.hours}</p>
+          <a className="offer-cta booking-cta" href={booking.href} target="_blank" rel="noreferrer">
+            {booking.label}
+          </a>
+        </section>
+      ) : null}
     </article>
   );
 }
