@@ -1,13 +1,25 @@
+"use client";
+
 import { engines } from "@/config/engines";
 import { engineLabs, site } from "@/config/site";
+import { useExperience } from "@/components/experience/ExperienceContext";
+import { ExternalLink } from "@/components/interface/ExternalLink";
+import { StudentFeedback } from "@/components/interface/StudentFeedback";
 
 export function EngineLabs() {
+  const { setDestination } = useExperience();
+  const { firstStep } = engineLabs;
+
   return (
     <article className="panel panel-wide">
       <p className="kicker">{site.softwareLabels.join(" · ")}</p>
-      <h2>{engineLabs.headline}</h2>
+      <h1>{engineLabs.headline}</h1>
       <p className="lede">{engineLabs.lede}</p>
       <p>{engineLabs.summary}</p>
+      <p className="audience">{engineLabs.audience}</p>
+      <p className="first-step">
+        {firstStep.before} <ExternalLink href={firstStep.href}>{firstStep.label}</ExternalLink>, {firstStep.after}
+      </p>
       <section className="stack" aria-labelledby="engines-heading">
         <h3 id="engines-heading">Eight Engines. One catalog.</h3>
         <ul className="engine-list">
@@ -32,6 +44,12 @@ export function EngineLabs() {
         <a href={engineLabs.catalogHref} target="_blank" rel="noreferrer">
           See the full catalog
         </a>
+      </p>
+      <StudentFeedback />
+      <p>
+        <button type="button" className="text-button" onClick={() => setDestination("reviews")}>
+          Leave a review
+        </button>
       </p>
     </article>
   );

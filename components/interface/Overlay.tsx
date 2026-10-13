@@ -6,7 +6,6 @@ import { About } from "@/components/interface/About";
 import { Contact } from "@/components/interface/Contact";
 import { EngineLabs } from "@/components/interface/EngineLabs";
 import { Home } from "@/components/interface/Home";
-import { LoadingState } from "@/components/interface/LoadingState";
 import { Navigation } from "@/components/interface/Navigation";
 import { Production } from "@/components/interface/Production";
 import { Footer } from "@/components/interface/Footer";
@@ -77,7 +76,6 @@ export function Overlay() {
         {destination === "reviews" ? <Reviews /> : null}
         {destination === "contact" ? <Contact /> : null}
       </main>
-      <LoadingState />
       <Footer />
       {status === "unsupported" ? <SceneFallback reason="unsupported" /> : null}
       {status === "error" ? <SceneFallback reason="error" message={errorMessage} /> : null}

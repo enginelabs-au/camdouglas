@@ -9,36 +9,33 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { cameraDestinations } from "@/config/scene";
 import type { DestinationId } from "@/config/types";
-import { destinationFromHash, hashFromDestination } from "@/lib/hash";
+import { destinationFromPath, legacyDestinationFromHash, pathForDestination } from "@/lib/routes";
 import { prefersReducedMotion, supportsCanvas2D } from "@/lib/capabilities";
 
 export type LoadStatus = "checking" | "loading" | "ready" | "error" | "unsupported";
 
 type ExperienceContextValue = {
   destination: DestinationId;
-  exploring: boolean;
   reducedMotion: boolean;
-  progress: number;
   status: LoadStatus;
   errorMessage: string | null;
   canvas2d: boolean;
   resetNonce: number;
   setDestination: (id: DestinationId) => void;
-  setExploring: (value: boolean) => void;
   resetView: () => void;
-  setProgress: (value: number) => void;
   setStatus: (status: LoadStatus, message?: string | null) => void;
 };
 
 const ExperienceContext = createContext<ExperienceContextValue | null>(null);
 
 export function ExperienceProvider({ children }: { children: ReactNode }) {
-  const [destination, setDestinationState] = useState<DestinationId>("home");
-  const [exploring, setExploring] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const destination = destinationFromPath(pathname);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [status, setStatusState] = useState<LoadStatus>("checking");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [canvas2d, setCanvas2d] = useState(true);
@@ -58,34 +55,38 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
     const onMotion = () => setReducedMotion(motion.matches);
     motion.addEventListener("change", onMotion);
 
-    const applyHash = () => {
-      const next = destinationFromHash(window.location.hash);
-      setDestinationState(next);
-      setExploring(false);
+    // Old hash links (/#reviews) become real URLs (/reviews).
+    const redirectLegacyHash = () => {
+      const legacy = legacyDestinationFromHash(window.location.hash);
+      if (!legacy) return;
+      router.replace(`${pathForDestination(legacy)}${window.location.search}`);
     };
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
+    redirectLegacyHash();
+    window.addEventListener("hashchange", redirectLegacyHash);
 
     return () => {
       motion.removeEventListener("change", onMotion);
-      window.removeEventListener("hashchange", applyHash);
+      window.removeEventListener("hashchange", redirectLegacyHash);
     };
-  }, []);
+  }, [router]);
 
-  const setDestination = useCallback((id: DestinationId) => {
-    if (!cameraDestinations[id]) return;
-    setDestinationState(id);
-    setExploring(false);
-    const nextHash = hashFromDestination(id);
-    if (window.location.hash.replace(/^#/, "") === nextHash.replace(/^#/, "")) return;
-    window.history.replaceState(null, "", nextHash || window.location.pathname);
-  }, []);
+  const setDestination = useCallback(
+    (id: DestinationId) => {
+      if (!cameraDestinations[id]) return;
+      const href = pathForDestination(id);
+      if (href !== pathname) router.push(href);
+    },
+    [router, pathname],
+  );
 
+  // From another page this glides home; on home it snaps the galaxy back to its starting view.
   const resetView = useCallback(() => {
-    setExploring(false);
+    if (destination === "home") {
+      setResetNonce((value) => value + 1);
+      return;
+    }
     setDestination("home");
-    setResetNonce((value) => value + 1);
-  }, [setDestination]);
+  }, [destination, setDestination]);
 
   const setStatus = useCallback((next: LoadStatus, message: string | null = null) => {
     setStatusState(next);
@@ -95,24 +96,18 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       destination,
-      exploring,
       reducedMotion,
-      progress,
       status,
       errorMessage,
       canvas2d,
       resetNonce,
       setDestination,
-      setExploring,
       resetView,
-      setProgress,
       setStatus,
     }),
     [
       destination,
-      exploring,
       reducedMotion,
-      progress,
       status,
       errorMessage,
       canvas2d,

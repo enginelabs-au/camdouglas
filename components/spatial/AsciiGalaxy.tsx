@@ -9,9 +9,13 @@ export function AsciiGalaxy() {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<GalaxyHandle | null>(null);
-  const { destination, exploring, reducedMotion, setProgress, setStatus, resetNonce } = useExperience();
+  const { destination, reducedMotion, status, setStatus, resetNonce } = useExperience();
+  const handledNonce = useRef(0);
   const destinationRef = useRef(destination);
-  destinationRef.current = destination;
+
+  useEffect(() => {
+    destinationRef.current = destination;
+  }, [destination]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -30,28 +34,28 @@ export function AsciiGalaxy() {
     }
 
     handle.setView(galaxyViews[startDestination], startDestination === "home");
-    setProgress(1);
     setStatus("ready");
 
     return () => {
       handle.destroy();
       handleRef.current = null;
     };
-  }, [reducedMotion, setProgress, setStatus]);
+  }, [reducedMotion, setStatus]);
 
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle) return;
     const view = galaxyViews[destination];
-    if (resetNonce > 0 && destination === "home") {
+    if (resetNonce !== handledNonce.current) {
+      handledNonce.current = resetNonce;
       handle.reset(view);
       return;
     }
-    handle.setView(view, destination === "home" && !exploring);
-  }, [destination, exploring, resetNonce]);
+    handle.setView(view, destination === "home");
+  }, [destination, resetNonce]);
 
   return (
-    <div ref={rootRef} id="ascii-galaxy-only" className="ascii-galaxy">
+    <div ref={rootRef} id="ascii-galaxy-only" className={`ascii-galaxy${status === "ready" ? " is-ready" : ""}`}>
       <canvas
         ref={canvasRef}
         id="ascii-galaxy-canvas"

@@ -1,5 +1,8 @@
 import type { SocialLink } from "@/config/types";
 
+// Google Calendar appointment schedule (every day, 6am to 12am Sydney time).
+const bookingHref = "https://calendar.app.google/8AmkANGSGYHhrXPUA";
+
 export const site = {
   name: "Cam Douglas",
   title: "Cam Douglas",
@@ -33,6 +36,13 @@ export const engineLabs = {
     "Engine Labs is a one-operator AI build studio in Sydney. Eight productised Engines, each with a published spec sheet, a starting price in AUD, and a real handover.",
   siteHref: "https://enginelabs.com.au",
   catalogHref: "https://enginelabs.com.au/engines",
+  audience: "For small businesses that want routine sales, ops and support work handled without a new hire or a long agency project.",
+  firstStep: {
+    before: "First step:",
+    label: "book a meeting",
+    after: "then we work out which Engine fits.",
+    href: bookingHref,
+  },
 };
 
 export const productionCopy = {
@@ -53,7 +63,6 @@ export const contactCopy = {
   booking: {
     label: "Book a meeting",
     hours: "Every day, 6am to 12am Sydney time.",
-    // Paste the Google Calendar appointment schedule link here to show the button.
-    href: "",
+    href: bookingHref,
   },
 };

@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { cameraDestinations, primaryNav } from "@/config/scene";
 import { site } from "@/config/site";
 import { useExperience } from "@/components/experience/ExperienceContext";
+import { pathForDestination } from "@/lib/routes";
 
 export function Navigation() {
-  const { destination, setDestination } = useExperience();
+  const { destination } = useExperience();
 
   return (
     <header className="site-header">
@@ -13,22 +15,21 @@ export function Navigation() {
         Skip to content
       </a>
       <p className="site-mark">
-        <button type="button" onClick={() => setDestination("home")} aria-current={destination === "home" ? "page" : undefined}>
+        <Link href="/" aria-current={destination === "home" ? "page" : undefined}>
           {site.name}
-        </button>
+        </Link>
       </p>
       <nav className="glass-nav" aria-label="Primary">
         {primaryNav
           .filter((id) => id !== "home")
           .map((id) => (
-            <button
+            <Link
               key={id}
-              type="button"
-              onClick={() => setDestination(destination === id ? "home" : id)}
+              href={pathForDestination(destination === id ? "home" : id)}
               aria-current={destination === id ? "page" : undefined}
             >
               {cameraDestinations[id].label}
-            </button>
+            </Link>
           ))}
       </nav>
     </header>

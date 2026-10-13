@@ -77,7 +77,8 @@ h4 {
   margin: 0 0 0.55rem;
 }
 
-h2 {
+h2,
+.panel > h1 {
   font-size: clamp(1.6rem, 2.4vw, 2.2rem);
 }
 
@@ -129,6 +130,12 @@ p {
 .ascii-galaxy-canvas {
   touch-action: none;
   cursor: grab;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.ascii-galaxy.is-ready .ascii-galaxy-canvas {
+  opacity: 1;
 }
 
 .overlay {
@@ -197,7 +204,8 @@ p {
   pointer-events: auto;
 }
 
-.site-mark button {
+.site-mark a {
+  text-decoration: none;
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -217,7 +225,8 @@ p {
   -webkit-backdrop-filter: blur(22px) saturate(1.55);
 }
 
-.glass-nav button {
+.glass-nav a {
+  text-decoration: none;
   padding: 0.42rem 0.85rem;
   border-radius: 999px;
   font-size: 0.82rem;
@@ -225,8 +234,8 @@ p {
   color: var(--ink-soft);
 }
 
-.glass-nav button[aria-current="page"],
-.glass-nav button:hover {
+.glass-nav a[aria-current="page"],
+.glass-nav a:hover {
   background: var(--glass-strong);
   color: #fff;
 }
@@ -347,6 +356,7 @@ p {
   max-width: 46rem;
 }
 
+.panel h1,
 .panel h2,
 .panel h3,
 .panel h4,
@@ -758,34 +768,6 @@ button.offer-cta {
   color: var(--ink-soft);
 }
 
-.boot {
-  position: fixed;
-  inset: 0;
-  z-index: 8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 24px;
-  background: #000;
-  color: #fff;
-  text-align: center;
-  opacity: 1;
-  transition: opacity 0.45s linear;
-  pointer-events: auto;
-}
-
-.boot p {
-  max-width: 22rem;
-  margin: 0;
-  color: #fff;
-}
-
-.boot.is-done {
-  opacity: 0;
-  pointer-events: none;
-}
-
 .fallback {
   position: absolute;
   inset: 0;
@@ -1136,7 +1118,8 @@ button.offer-cta {
     gap: 0.5rem;
   }
 
-  .site-mark button {
+  .site-mark a {
+  text-decoration: none;
     font-size: 0.82rem;
   }
 
@@ -1154,9 +1137,10 @@ button.offer-cta {
     display: none;
   }
 
-  .glass-nav button {
+  .glass-nav a {
     flex: 1 1 0;
     min-width: 0;
+    text-align: center;
     padding: 0.4rem 0.22rem;
     font-size: 0.72rem;
     white-space: nowrap;
@@ -1278,7 +1262,7 @@ button.offer-cta {
     scroll-behavior: auto !important;
   }
 
-  .boot {
+  .ascii-galaxy-canvas {
     transition: none;
   }
 }

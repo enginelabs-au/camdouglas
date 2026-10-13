@@ -142,12 +142,11 @@ export function appOrigin(request: Request) {
 }
 
 export function reviewsReturn(origin: string, params?: Record<string, string>) {
-  const url = new URL("/", origin);
+  const url = new URL("/reviews", origin);
   if (params) {
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.set(key, value);
     }
   }
-  url.hash = "reviews";
   return url.toString();
 }

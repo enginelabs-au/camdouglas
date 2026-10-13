@@ -26,7 +26,7 @@ npm start
 - Each section holds a composed view of the galaxy
 - Drag to orbit, wheel to zoom, `Explore` to hold the current view, `Reset` to return home
 - `1`–`5` jump to destinations; `H` home; `E` explore; `R` or `Escape` reset
-- Hash URLs (`#production`, `#about`, and so on) work without the animation
+- Each section has its own URL (`/music`, `/software`, `/about`, `/reviews`, `/contact`). Old hash links such as `/#reviews` redirect to them
 - Reduced motion pauses the galaxy
 - Unsupported canvas falls back to a still image and the written site
 

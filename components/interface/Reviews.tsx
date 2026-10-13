@@ -62,7 +62,7 @@ export function Reviews() {
       const url = new URL(window.location.href);
       url.searchParams.delete("review_ok");
       url.searchParams.delete("review_error");
-      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash || "#reviews"}`);
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     }
   }, []);
 
@@ -156,7 +156,7 @@ export function Reviews() {
 
   return (
     <article className="panel panel-wide">
-      <h2>Leave A Review For Cam</h2>
+      <h1>Leave A Review For Cam</h1>
 
       <section className="stack review-compose" aria-label="Leave a review">
         {spec && !verified ? (
