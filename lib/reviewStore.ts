@@ -125,6 +125,7 @@ export async function publishReview(review: Review) {
     }
     await writeBlob(review);
     await archiveReview(review);
+    await snapshotPublishedReviews();
     return { review, created: true };
   }
   const current = await readLocal();
@@ -156,11 +157,17 @@ export async function snapshotPublishedReviews() {
   if (!blobReady()) return { reviews, stored: false };
   const day = new Date().toISOString().slice(0, 10);
   try {
-    await putReviewJson(`${SNAPSHOT_PREFIX}${day}.json`, reviews, false);
-    return { reviews, stored: true };
-  } catch {
+    await putReviewJson(`${SNAPSHOT_PREFIX}latest.json`, reviews, true);
+  } catch (error) {
+    console.error("Review latest snapshot failed", error);
     return { reviews, stored: false };
   }
+  try {
+    await putReviewJson(`${SNAPSHOT_PREFIX}${day}.json`, reviews, false);
+  } catch {
+    // Dated copy already exists for today. latest.json still holds the current list.
+  }
+  return { reviews, stored: true };
 }
 
 function safeBlobId(value: string) {

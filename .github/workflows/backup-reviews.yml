@@ -17,6 +17,12 @@ jobs:
         run: |
           mkdir -p backups
           curl -fsS "https://camdouglas.com/api/reviews" -o backups/reviews.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("backups/reviews.json")
+          path.write_text(json.dumps(json.loads(path.read_text()), indent=2) + "\n")
+          PY
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
