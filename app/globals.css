@@ -761,7 +761,7 @@ button.offer-cta {
 }
 
 .reviews-feed {
-  max-height: min(13.5rem, 32vh);
+  max-height: min(22.5rem, 52vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 0.2rem;

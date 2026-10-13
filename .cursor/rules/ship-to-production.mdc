@@ -1,0 +1,13 @@
+---
+description: Push requested site changes to git and production when done
+alwaysApply: true
+---
+
+# Ship requested changes
+
+When Cam asks for a change on this site, finish by pushing it to git and deploying it to production. Do not wait for a separate "push" or "go live" request.
+
+- Commit with the GitHub noreply author `Cam Douglas <132057194+cam-douglas@users.noreply.github.com>` via env vars, not git config.
+- Push `main` to `origin`.
+- Deploy that commit to Vercel production (`camdouglas` / `camdouglas.com`). GitHub pushes do not always trigger Vercel; create the production deployment if needed.
+- Do not mutate live published reviews unless Cam asks to change them.
