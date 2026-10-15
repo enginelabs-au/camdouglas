@@ -1,1 +1,37 @@
-{"reviews":[{"id":"rev_2958c8db94b66f89","name":"Shayazfr","handle":"Shayazfr","quote":"Cam is genuinely passionate about what he does and brings a lot of creativity to his work. From my interactions with him, he's been very approachable, insightful and great to talk about ideas with. Definitely someone worth working with!","provider":"github","profileUrl":"https://github.com/Shayazfr","avatar":"https://avatars.githubusercontent.com/u/178974323?v=4","rating":5,"date":"2026-10-13"},{"id":"rev_d2755e3ec8627248","name":"Deepak Kumar","handle":"D33P4K","quote":"I received a one-on-one Ableton production masterclass session, we went from zero to creating beats within an hour.\n\nMy progress towards music production has vastly improved with a single class than years of watching tutorials online. A hand's on approach was emphasized throughout the session.\n\nCam has put together an excellent syllabus towards familiarising audio production techniques with patience and humility at every step of the way. I highly reccomend their audio production courses.","provider":"github","profileUrl":"https://github.com/D33P4K","avatar":"https://avatars.githubusercontent.com/u/7099306?v=4","rating":5,"date":"2026-10-12"},{"id":"rev_ed6ba24fe55caf64","name":"5starlife1","handle":"5starlife1","quote":"Cam is a really good teacher and gave a very informative lesson about mixing a finished sound project in Ableton!","provider":"github","profileUrl":"https://github.com/5starlife1","avatar":"https://avatars.githubusercontent.com/u/164353835?v=4","rating":5,"date":"2026-10-12"}]}
+{
+  "reviews": [
+    {
+      "id": "rev_2958c8db94b66f89",
+      "name": "Shayazfr",
+      "handle": "Shayazfr",
+      "quote": "Cam is genuinely passionate about what he does and brings a lot of creativity to his work. From my interactions with him, he's been very approachable, insightful and great to talk about ideas with. Definitely someone worth working with!",
+      "provider": "github",
+      "profileUrl": "https://github.com/Shayazfr",
+      "avatar": "https://avatars.githubusercontent.com/u/178974323?v=4",
+      "rating": 5,
+      "date": "2026-10-13"
+    },
+    {
+      "id": "rev_d2755e3ec8627248",
+      "name": "Deepak Kumar",
+      "handle": "D33P4K",
+      "quote": "I received a one-on-one Ableton production masterclass session, we went from zero to creating beats within an hour.\n\nMy progress towards music production has vastly improved with a single class than years of watching tutorials online. A hand's on approach was emphasized throughout the session.\n\nCam has put together an excellent syllabus towards familiarising audio production techniques with patience and humility at every step of the way. I highly reccomend their audio production courses.",
+      "provider": "github",
+      "profileUrl": "https://github.com/D33P4K",
+      "avatar": "https://avatars.githubusercontent.com/u/7099306?v=4",
+      "rating": 5,
+      "date": "2026-10-12"
+    },
+    {
+      "id": "rev_ed6ba24fe55caf64",
+      "name": "5starlife1",
+      "handle": "5starlife1",
+      "quote": "Cam is a really good teacher and gave a very informative lesson about mixing a finished sound project in Ableton!",
+      "provider": "github",
+      "profileUrl": "https://github.com/5starlife1",
+      "avatar": "https://avatars.githubusercontent.com/u/164353835?v=4",
+      "rating": 5,
+      "date": "2026-10-12"
+    }
+  ]
+}
