@@ -24,6 +24,16 @@ const STRIDE = 9; // aPos(4) + aInfo(2) + aColor(3)
 const MAX_OVERLAY = 700;
 const MIN_ENERGY = 0.13;
 
+// Quality ladder. A 15ms interval gives 60fps on both 60Hz and 120Hz displays; a slowly turning
+// background gains nothing from 120fps and it would double the GPU and battery cost. If the
+// controller sees the device falling behind it steps down: fewer device pixels first, then 30fps.
+const TIERS = [
+  { dpr: 2, interval: 15 },
+  { dpr: 1.5, interval: 15 },
+  { dpr: 1, interval: 15 },
+  { dpr: 1, interval: 31 },
+] as const;
+
 const SCENE_VERT = `#version 300 es
 precision highp float;
 layout(location = 0) in vec4 aPos;
@@ -245,6 +255,7 @@ export function createRendererGL(canvas: HTMLCanvasElement, model: GalaxyModel):
   let rows = 1;
   let cellDev = { w: 7, h: 13 };
   let lost = false;
+  let tier = 0;
 
   let sceneProg: Program | null = null;
   let glyphProg: Program | null = null;
@@ -385,8 +396,8 @@ export function createRendererGL(canvas: HTMLCanvasElement, model: GalaxyModel):
     if (!gl || lost) return;
     W = Math.max(1, width);
     H = Math.max(1, height);
-    // Device pixels are capped at 2x. Glyph quads cover few pixels, so this is cheap and crisp.
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Device pixels are capped at 2x (less on lower tiers). 3x screens cannot tell on glyphs.
+    dpr = Math.min(window.devicePixelRatio || 1, TIERS[tier].dpr);
     canvas.width = Math.max(1, Math.round(W * dpr));
     canvas.height = Math.max(1, Math.round(H * dpr));
 
@@ -495,11 +506,15 @@ export function createRendererGL(canvas: HTMLCanvasElement, model: GalaxyModel):
 
   return {
     kind: "webgl",
-    interval: () => 0,
+    interval: () => TIERS[tier].interval,
+    tier: () => tier,
     resize,
     draw,
-    // WebGL has headroom to spare, so there is nothing to step down to.
-    stepDown: () => false,
+    stepDown() {
+      if (tier >= TIERS.length - 1) return false;
+      tier += 1;
+      return true;
+    },
     destroy() {
       canvas.removeEventListener("webglcontextlost", onLost);
       canvas.removeEventListener("webglcontextrestored", onRestored);

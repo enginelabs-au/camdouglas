@@ -86,14 +86,20 @@ export function startAsciiGalaxy(
     drawNow();
   }
 
-  // The 2D fallback tunes itself: if the device cannot keep up it steps down resolution and
-  // frame rate, and it only ever steps down so it cannot flap. WebGL has nothing to step to.
+  // Both renderers tune themselves to the device. When frames stop arriving at a steady cadence
+  // (the GPU or the main thread is behind) the renderer steps down a tier: WebGL drops device
+  // pixels and then frame rate, the 2D fallback drops resolution and frame rate. Steps only go
+  // down, so the quality cannot flap, and a wrong step costs a little sharpness, not smoothness.
   let raf = 0;
   let dirty = true;
   let slowFrames = 0;
-  let sinceStep = 0;
+  let stepAt = 0;
   let avgTick = 16;
   let avgDraw = 4;
+  // 24ms is roughly 42fps. Below that the galaxy visibly stutters, so a tier is given up.
+  const SLOW_TICK = 24;
+  const DRAW_BUDGET = renderer.kind === "2d" ? 12 : 8;
+  root.dataset.tier = String(renderer.tier());
 
   // Lightweight readout (renderer, frames per second, JS time per draw) for diagnosing devices.
   let statFrames = 0;
@@ -136,19 +142,26 @@ export function startAsciiGalaxy(
         statFrames = 0;
         statDrawMs = 0;
       }
+      avgDraw += (spent - avgDraw) * 0.05;
+    }
 
-      // Ignore the long gaps left by background tabs; they say nothing about device speed.
-      if (renderer.kind === "2d" && tick > 0 && tick < 400) {
-        avgTick += (tick - avgTick) * 0.05;
-        avgDraw += (spent - avgDraw) * 0.05;
-        sinceStep += 1;
-        // 45ms is well below 30fps, so phones that cap at 30fps in battery saver stay untouched.
-        if (sinceStep > 90 && (avgTick > 45 || avgDraw > 12)) slowFrames += 1;
-        else slowFrames = 0;
-        if (slowFrames > 20) {
-          slowFrames = 0;
-          sinceStep = 0;
-          if (renderer.stepDown()) resize();
+    // Ignore the long gaps left by background tabs; they say nothing about device speed. The
+    // first three seconds after start or a step are a grace period for hydration and
+    // reallocation, and the slowness has to persist for 45 frames so a route change cannot
+    // trigger a step. Paused (reduced motion) galaxies draw once and idle; nothing to govern.
+    if (tick > 0 && tick < 400 && !idle && !document.hidden) {
+      if (!stepAt) stepAt = now;
+      avgTick += (tick - avgTick) * 0.05;
+      if (now - stepAt > 3000 && (avgTick > SLOW_TICK || avgDraw > DRAW_BUDGET)) slowFrames += 1;
+      else slowFrames = 0;
+      if (slowFrames > 45) {
+        slowFrames = 0;
+        stepAt = now;
+        avgTick = 16;
+        avgDraw = 4;
+        if (renderer.stepDown()) {
+          root.dataset.tier = String(renderer.tier());
+          resize();
         }
       }
     }

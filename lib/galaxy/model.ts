@@ -243,8 +243,10 @@ export function diskDoppler(angle: number, yaw: number) {
 
 export type Renderer = {
   kind: "webgl" | "2d";
-  // Minimum milliseconds between draws. WebGL draws every frame.
+  // Minimum milliseconds between draws at the current quality tier.
   interval: () => number;
+  // Current quality tier, 0 being the best. Exposed for diagnostics.
+  tier: () => number;
   resize: (width: number, height: number) => void;
   draw: (view: ViewState) => void;
   // Lower the quality one step. Returns false when already at the lowest.

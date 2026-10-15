@@ -144,6 +144,7 @@ export function createRenderer2D(canvas: HTMLCanvasElement, model: GalaxyModel):
   return {
     kind: "2d",
     interval: () => QUALITY[quality].interval,
+    tier: () => quality,
     resize(width, height) {
       W = Math.max(300, width);
       H = Math.max(320, height);

@@ -221,8 +221,8 @@ p {
   border: 1px solid var(--line);
   border-radius: 999px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(22px) saturate(1.55);
   -webkit-backdrop-filter: blur(22px) saturate(1.55);
+  backdrop-filter: blur(22px) saturate(1.55);
 }
 
 .glass-nav a {
@@ -1564,6 +1564,17 @@ button.offer-cta {
 
 .site-footer a:hover {
   transform: translateY(-2px);
+}
+
+/* Phones: a backdrop blur over a canvas that changes every frame has to be recomputed every
+   frame, and on mobile GPUs that costs more than the galaxy itself. A near-solid pill reads the
+   same against the dark sky and costs nothing. */
+@media (pointer: coarse) {
+  .glass-nav {
+    background: rgba(16, 20, 28, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (max-width: 480px) {
