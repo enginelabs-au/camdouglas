@@ -66,6 +66,56 @@ export function createGalaxyModel(): GalaxyModel {
     });
   }
 
+  // Fill. The arms alone leave wide empty lanes between the bright hub and the outer stars, so
+  // the galaxy read as a wheel rim. These extra stars come from their own generator (the layout
+  // of everything else is unchanged): a broader set of arm stars, and a smooth diffuse disc of
+  // dim stars at every angle that makes the whole thing read as one mass with soft streaks.
+  let fillSeed = 9917;
+  const fill = () => {
+    fillSeed = (1664525 * fillSeed + 1013904223) >>> 0;
+    return fillSeed / 4294967296;
+  };
+  const fillGauss = () => Math.sqrt(-2 * Math.log(Math.max(fill(), 0.000001))) * Math.cos(TAU * fill());
+  for (let i = 0; i < 3000; i++) {
+    const r = clamp(0.2 + Math.pow(fill(), 0.8) * 2.9, 0.2, 3.2);
+    const arm = Math.floor(fill() * 4);
+    const angle = (arm * TAU) / 4 + Math.log(r / 0.25) * 2.9 + fillGauss() * (0.34 + 0.14 * r);
+    const b = fill();
+    arms.push({
+      r,
+      a: angle,
+      z: fillGauss() * (0.03 + 0.02 * r),
+      col: b < 0.25 ? 1 : b < 0.4 ? 2 : 0,
+      v: 0.25 + fill() * 0.55,
+      om: galaxyOmega(r),
+    });
+  }
+  // A soft shoulder just outside the bright hub, where the lane was emptiest.
+  for (let i = 0; i < 3500; i++) {
+    const r = 0.5 + fill() * 1.0;
+    const b = fill();
+    arms.push({
+      r,
+      a: fill() * TAU,
+      z: fillGauss() * (0.03 + 0.02 * r),
+      col: b < 0.3 ? 1 : b < 0.45 ? 2 : 0,
+      v: 0.3 + fill() * 0.45,
+      om: galaxyOmega(r),
+    });
+  }
+  for (let i = 0; i < 9000; i++) {
+    const r = clamp(0.2 + Math.pow(fill(), 1.15) * 2.7, 0.2, 3.0);
+    const b = fill();
+    arms.push({
+      r,
+      a: fill() * TAU,
+      z: fillGauss() * (0.03 + 0.02 * r),
+      col: b < 0.2 ? 1 : b < 0.3 ? 2 : 0,
+      v: 0.28 + fill() * 0.42,
+      om: galaxyOmega(r),
+    });
+  }
+
   for (let i = 0; i < 530; i++) {
     const r = Math.abs(gauss()) * 0.76;
     halo.push({

@@ -70,6 +70,12 @@ export function startAsciiGalaxy(
     frame: 0,
     last: 0,
   };
+  // Whether the current page wants the galaxy to orbit by itself (the home page does). Dragging
+  // or zooming switches the orbit off while the visitor is steering, and it resumes a moment
+  // after they let go, so a drag never leaves the galaxy stuck.
+  let orbit = state.auto;
+  let resumeAt = 0;
+  const RESUME_DELAY = 1400;
   const view: ViewState = { t: 0, yaw: initial.yaw, pitch: initial.pitch, zoom: initial.zoom };
 
   function drawNow() {
@@ -114,7 +120,14 @@ export function startAsciiGalaxy(
       state.t += dt * state.velocity;
       // The whole galaxy turns as one mass: a steady orbit, about one lap a minute, close to the
       // feel of dragging it by hand. The stars' own gentle differential spin comes from the model.
-      if (state.auto) state.targetYaw += dt * 0.11;
+      // Zooming in speeds the orbit up (about 2x at 1.5x zoom, 5x at 2.5x zoom), and the speed
+      // eases back as the zoom does, because it follows the smoothed zoom rather than the target.
+      if (state.auto) state.targetYaw += dt * 0.11 * Math.pow(Math.max(1, state.zoom), 1.8);
+    }
+    if (orbit && !state.auto && !state.paused && pointers.size === 0 && now >= resumeAt) {
+      state.auto = true;
+      // Carry on from where the visitor left the view rather than easing back to a stale target.
+      state.targetYaw = state.yaw;
     }
     state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
     state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);
@@ -139,6 +152,9 @@ export function startAsciiGalaxy(
         if (statSince) {
           root.dataset.fps = String(Math.round((statFrames * 1000) / (now - statSince)));
           root.dataset.drawMs = (statDrawMs / statFrames).toFixed(2);
+          root.dataset.orbit = state.auto ? "1" : "0";
+          root.dataset.yaw = state.yaw.toFixed(3);
+          root.dataset.zoom = state.zoom.toFixed(2);
         }
         statSince = now;
         statFrames = 0;
@@ -194,6 +210,7 @@ export function startAsciiGalaxy(
     pinch = 0;
     if (inPanel) return;
     state.auto = false;
+    resumeAt = Infinity;
     try {
       root.setPointerCapture(e.pointerId);
     } catch {
@@ -217,6 +234,7 @@ export function startAsciiGalaxy(
       }
       next.locked = true;
       state.auto = false;
+      resumeAt = Infinity;
     }
     pointers.set(e.pointerId, next);
     if (pointers.size >= 2) {
@@ -238,6 +256,7 @@ export function startAsciiGalaxy(
   const onPointerUp = (e: PointerEvent) => {
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
+      resumeAt = performance.now() + RESUME_DELAY;
       pinch = 0;
       canvas.style.cursor = "grab";
     } else {
@@ -254,6 +273,7 @@ export function startAsciiGalaxy(
     e.preventDefault();
     state.targetZoom = clamp(state.targetZoom * Math.exp(-e.deltaY * 0.001), 0.6, 2.5);
     state.auto = false;
+    resumeAt = performance.now() + RESUME_DELAY;
   };
 
   window.addEventListener("pointerdown", onPointerDown, { passive: false, capture: true });
@@ -275,6 +295,7 @@ export function startAsciiGalaxy(
       state.targetPitch = next.pitch;
       state.targetZoom = next.zoom;
       state.auto = auto;
+      orbit = auto && !options?.reducedMotion;
     },
     reset(next) {
       state.t = 0;
@@ -285,6 +306,7 @@ export function startAsciiGalaxy(
       state.zoom = next.zoom;
       state.targetZoom = next.zoom;
       state.auto = !options?.reducedMotion;
+      orbit = state.auto;
       state.paused = Boolean(options?.reducedMotion);
       drawNow();
     },
