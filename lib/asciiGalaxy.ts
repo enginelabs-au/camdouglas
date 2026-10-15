@@ -112,7 +112,9 @@ export function startAsciiGalaxy(
     state.last = now;
     if (!state.paused) {
       state.t += dt * state.velocity;
-      if (state.auto) state.targetYaw += dt * 0.014;
+      // A slow camera drift (one lap in about seventeen minutes) adds parallax without
+      // adding to the galaxy's own spin, which is where the motion should come from.
+      if (state.auto) state.targetYaw += dt * 0.006;
     }
     state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
     state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);

@@ -1,22 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { StarRating } from "@/components/interface/StarRating";
 import { formatReviewDate } from "@/config/reviews";
 import type { Review } from "@/config/types";
 
-export function PublishedReviews({ heading }: { heading?: string }) {
-  const [reviews, setReviews] = useState<Review[] | null>(null);
+// Reviews rendered on the server arrive through this context, so they are in the first paint.
+export const InitialReviewsContext = createContext<Review[] | null>(null);
 
+export function PublishedReviews({ heading }: { heading?: string }) {
+  const initial = useContext(InitialReviewsContext);
+  const [reviews, setReviews] = useState<Review[] | null>(initial);
+
+  // A background refresh catches a review approved since the page was generated.
   useEffect(() => {
     let cancelled = false;
     fetch("/api/reviews", { cache: "no-store" })
       .then((response) => response.json())
       .then((payload: { reviews?: Review[] }) => {
-        if (!cancelled) setReviews(payload.reviews ?? []);
+        if (cancelled) return;
+        const next = payload.reviews ?? [];
+        setReviews((current) =>
+          current && current.length === next.length && current.every((item, i) => item.id === next[i]?.id)
+            ? current
+            : next,
+        );
       })
       .catch(() => {
-        if (!cancelled) setReviews([]);
+        if (!cancelled) setReviews((current) => current ?? []);
       });
     return () => {
       cancelled = true;

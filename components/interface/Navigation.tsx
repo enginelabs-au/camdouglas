@@ -16,7 +16,12 @@ export function Navigation() {
         Skip to content
       </a>
       <p className="site-mark">
-        <Link href="/" aria-current={destination === "home" ? "page" : undefined}>
+        <Link
+          href="/"
+          className="cursor-lit"
+          data-text={site.name}
+          aria-current={destination === "home" ? "page" : undefined}
+        >
           {site.name}
         </Link>
         <SydneyClock />

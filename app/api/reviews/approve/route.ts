@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { appOrigin, reviewsReturn } from "@/lib/reviewIdentity";
 import { displayHandle } from "@/config/reviews";
 import { readApprovalToken } from "@/lib/reviewApproval";
@@ -46,6 +47,8 @@ export async function GET(request: Request) {
 
   try {
     const result = await publishReview(review);
+    // Pages carry the published reviews in their HTML, so regenerate them now.
+    revalidatePath("/", "layout");
     const who = `${escapeHtml(review.name)} (${escapeHtml(displayHandle(review))})`;
     const message = result.created
       ? `Published. The review from ${who} is now on the Reviews tab.`

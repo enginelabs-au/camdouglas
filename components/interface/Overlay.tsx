@@ -50,18 +50,49 @@ export function Overlay() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [resetView, setDestination]);
 
-  // Cards glow where the pointer is. It only sets two CSS variables on the card under it.
+  // Pointer-lit surfaces. The handler only writes CSS variables; the drawing is all in CSS.
+  // Cards and links light where the pointer is over them. The hero text and the name have
+  // pointer-events off (the galaxy can be dragged through them), so they are hit-tested by
+  // geometry. The panel title's rule carries the pointer's horizontal position.
   useEffect(() => {
+    const SURFACES = ".offer-card, .engine-row, .review-card, .glass-nav a, .site-footer a";
+    const REACH = 28;
+    const lit = () => document.querySelectorAll<HTMLElement>(".cursor-lit");
     const onMove = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
-      const card = (event.target as HTMLElement | null)?.closest<HTMLElement>(".offer-card, .engine-row, .review-card");
-      if (!card) return;
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
-      card.style.setProperty("--my", `${event.clientY - rect.top}px`);
+      const x = event.clientX;
+      const y = event.clientY;
+      const surface = event.target instanceof Element ? event.target.closest<HTMLElement>(SURFACES) : null;
+      if (surface) {
+        const rect = surface.getBoundingClientRect();
+        surface.style.setProperty("--mx", `${x - rect.left}px`);
+        surface.style.setProperty("--my", `${y - rect.top}px`);
+      }
+      const panel = document.querySelector<HTMLElement>(".panel");
+      if (panel) {
+        const rect = panel.getBoundingClientRect();
+        const along = rect.width > 0 ? Math.min(100, Math.max(0, ((x - rect.left) / rect.width) * 100)) : 50;
+        panel.style.setProperty("--lx", `${along.toFixed(1)}%`);
+      }
+      for (const text of lit()) {
+        const rect = text.getBoundingClientRect();
+        const near = x > rect.left - REACH && x < rect.right + REACH && y > rect.top - REACH && y < rect.bottom + REACH;
+        text.style.setProperty("--glow", near ? "1" : "0");
+        if (near) {
+          text.style.setProperty("--mx", `${x - rect.left}px`);
+          text.style.setProperty("--my", `${y - rect.top}px`);
+        }
+      }
+    };
+    const onLeave = () => {
+      for (const text of lit()) text.style.setProperty("--glow", "0");
     };
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    document.documentElement.addEventListener("pointerleave", onLeave);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      document.documentElement.removeEventListener("pointerleave", onLeave);
+    };
   }, []);
 
   return (

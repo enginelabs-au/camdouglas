@@ -795,13 +795,16 @@ button.offer-cta {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
+/* The feed is not its own scroller: a nested scroll box inside the scrolling panel left the
+   last review clipped. The panel scrolls through every review instead. */
 .reviews-feed {
-  max-height: min(22.5rem, 52vh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-right: 0.2rem;
   margin: 0.35rem 0 0;
-  scrollbar-width: thin;
+}
+
+.panel .review-howto {
+  margin: -0.15rem 0 0.9rem;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
 }
 
 .reviews-feed h3 {
@@ -1420,13 +1423,29 @@ button.offer-cta {
   text-transform: uppercase;
 }
 
+/* The rule under the title carries a bright amber point that slides with the pointer's
+   horizontal position over the panel (--lx is set in Overlay.tsx). Registering the property
+   lets the point ease between positions instead of jumping. */
+@property --lx {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 18%;
+}
+
+.panel {
+  --lx: 18%;
+  transition: --lx 0.45s var(--ease);
+}
+
 .panel > h1::after {
   content: "";
   display: block;
   width: 100%;
   height: 1px;
   margin-top: 0.85rem;
-  background: linear-gradient(90deg, var(--amber), rgba(105, 146, 205, 0.55) 45%, transparent);
+  background:
+    radial-gradient(7rem 400% at var(--lx) 50%, rgba(255, 226, 184, 0.95), rgba(240, 169, 92, 0.85) 35%, transparent 72%),
+    linear-gradient(90deg, rgba(240, 169, 92, 0.55), rgba(105, 146, 205, 0.5) 50%, transparent);
 }
 
 /* Section labels read like instrument legends with a trailing rule. */
@@ -1652,6 +1671,70 @@ button.offer-cta {
   }
 }
 
+/* Pointer light. Menu items and footer links carry a small amber glow under the pointer, the
+   same idea as the cards but a quarter the size. --mx/--my are set in Overlay.tsx. */
+.glass-nav a,
+.site-footer a {
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.site-footer a {
+  position: relative;
+}
+
+.glass-nav a::before,
+.site-footer a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: radial-gradient(4.5rem circle at var(--mx, 50%) var(--my, 50%), rgba(240, 169, 92, 0.22), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .glass-nav a:hover::before,
+  .site-footer a:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Cursor-lit text: the name in the header and the hero title and subtitle. An amber copy of the
+   text sits over the original and is masked to a soft circle around the pointer, so only the
+   letters near the cursor warm up. The copy is marked decorative (the "/ ''" alternative text)
+   so assistive technology does not read it twice. --glow switches it on while the pointer is
+   near; the hero has pointer-events off, so Overlay.tsx hit-tests it by geometry. */
+.cursor-lit {
+  position: relative;
+  --glow: 0;
+  --reach: 5rem;
+}
+
+.cursor-lit::after {
+  content: attr(data-text) / "";
+  position: absolute;
+  inset: 0;
+  color: var(--amber);
+  text-shadow: none;
+  -webkit-mask-image: radial-gradient(var(--reach) circle at var(--mx, 50%) var(--my, 50%), rgba(0, 0, 0, 0.8), transparent 70%);
+  mask-image: radial-gradient(var(--reach) circle at var(--mx, 50%) var(--my, 50%), rgba(0, 0, 0, 0.8), transparent 70%);
+  opacity: var(--glow);
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.hero h1.cursor-lit {
+  --reach: 7.5rem;
+}
+
+.site-mark a.cursor-lit {
+  --reach: 3.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .panel > *,
@@ -1660,9 +1743,13 @@ button.offer-cta {
     animation: none;
   }
 
+  .panel,
   .offer-card,
   .engine-row,
-  .site-footer a {
+  .site-footer a,
+  .glass-nav a::before,
+  .site-footer a::before,
+  .cursor-lit::after {
     transition: none;
   }
 }

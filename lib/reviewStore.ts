@@ -42,7 +42,11 @@ function localPath(id: string) {
 }
 
 async function readJson(url: string): Promise<unknown> {
-  const response = await fetch(url, { cache: "no-store" });
+  // Default fetch caching: Next.js does not cache this on the server, so API routes still read
+  // fresh data on every request, while the site layout can prerender pages with the reviews in
+  // them and regenerate on a timer. An explicit no-store here would force every page to render
+  // on demand instead.
+  const response = await fetch(url);
   if (!response.ok) return null;
   return response.json();
 }

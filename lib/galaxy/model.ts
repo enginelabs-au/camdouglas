@@ -33,8 +33,13 @@ export type GalaxyModel = {
 export type ViewState = { t: number; yaw: number; pitch: number; zoom: number };
 
 // Angular speeds depend only on radius, so they are computed once, not every frame.
+// Rotation follows a real disk galaxy: angular speed falls with radius, so the inner regions
+// slowly lap the outskirts, and the arms trail the rotation. The pace is slow and heavy: an orbit
+// at the inner edge of the arms takes about four and a half minutes, at mid radius about seven,
+// at the rim about eight and a half. The differential is kept mild so the arms stay recognisable
+// for many minutes instead of winding into a blur.
 function galaxyOmega(r: number) {
-  return Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
+  return 0.011 + 0.06 * Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
 }
 
 export function createGalaxyModel(): GalaxyModel {
@@ -54,7 +59,8 @@ export function createGalaxyModel(): GalaxyModel {
   for (let i = 0; i < 3500; i++) {
     const r = clamp(0.18 + Math.pow(rand(), 0.72) * 3.1, 0.18, 3.3);
     const arm = Math.floor(rand() * 4);
-    const angle = (arm * TAU) / 4 + Math.log(r / 0.25) * 2.9 + gauss() * (0.16 + 0.08 * r);
+    // Logarithmic spiral wound against the direction of rotation, so the arms trail.
+    const angle = (arm * TAU) / 4 - Math.log(r / 0.25) * 2.9 + gauss() * (0.16 + 0.08 * r);
     const b = rand();
     arms.push({
       r,
@@ -86,7 +92,8 @@ export function createGalaxyModel(): GalaxyModel {
       z: gauss() * 0.012,
       v: 0.45 + rand() * 0.58,
       col: rand() < 0.45 ? 4 : 5,
-      om: 0.034 / Math.pow(r, 1.5),
+      // Keplerian fall-off around the core, scaled to the slower pace of the arms.
+      om: 0.012 / Math.pow(r, 1.5),
     });
   }
 
@@ -110,7 +117,8 @@ export function createGalaxyModel(): GalaxyModel {
       planets.push({
         a: semi,
         e,
-        n: Math.sqrt(0.0006 / Math.pow(semi, 3)),
+        // Kepler's third law: closer planets orbit faster. Inner orbits take about twenty seconds.
+        n: Math.sqrt(0.00012 / Math.pow(semi, 3)),
         phase: rand() * TAU,
         node: rand() * TAU,
         incl: 0.25 + rand() * 0.7,

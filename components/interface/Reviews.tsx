@@ -159,6 +159,10 @@ export function Reviews() {
     <article className="panel panel-wide">
       <Kicker text="Students and clients" index="04 / 05" />
       <h1>Leave A Review For Cam</h1>
+      <p className="lede review-howto">
+        Log in with {reviewProviders.filter((item) => item.login).map((item) => item.label).join(" or ")} to leave a
+        review.
+      </p>
 
       <section className="stack review-compose" aria-label="Leave a review">
         {spec && !verified ? (
