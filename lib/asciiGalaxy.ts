@@ -75,7 +75,12 @@ export function startAsciiGalaxy(
   // after they let go, so a drag never leaves the galaxy stuck.
   let orbit = state.auto;
   let resumeAt = 0;
-  const RESUME_DELAY = 1400;
+  const RESUME_DELAY = 1200;
+  // When the last pointer event arrived. A pointer that never reports its release (the mouse let
+  // go outside the window, a lost capture, a tab switch) would otherwise hold the orbit off for
+  // good, so stale pointers are dropped.
+  let lastPointerAt = 0;
+  const STALE_POINTER = 6000;
   const view: ViewState = { t: 0, yaw: initial.yaw, pitch: initial.pitch, zoom: initial.zoom };
 
   function drawNow() {
@@ -124,6 +129,7 @@ export function startAsciiGalaxy(
       // eases back as the zoom does, because it follows the smoothed zoom rather than the target.
       if (state.auto) state.targetYaw += dt * 0.11 * Math.pow(Math.max(1, state.zoom), 1.8);
     }
+    if (pointers.size > 0 && performance.now() - lastPointerAt > STALE_POINTER) releaseAll();
     if (orbit && !state.auto && !state.paused && pointers.size === 0 && now >= resumeAt) {
       state.auto = true;
       // Carry on from where the visitor left the view rather than easing back to a stale target.
@@ -193,6 +199,7 @@ export function startAsciiGalaxy(
   const ignoreDrag = "a, button, input, textarea, select, label, .star-rating, .site-footer";
 
   const onPointerDown = (e: PointerEvent) => {
+    lastPointerAt = performance.now();
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest(ignoreDrag)) return;
@@ -223,6 +230,12 @@ export function startAsciiGalaxy(
   const onPointerMove = (e: PointerEvent) => {
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
+    lastPointerAt = performance.now();
+    // A mouse that moves with no button down has been released somewhere we did not hear about.
+    if (e.pointerType === "mouse" && e.buttons === 0) {
+      onPointerUp(e);
+      return;
+    }
     const next = { ...prev, x: e.clientX, y: e.clientY };
     if (prev.inPanel && !prev.locked) {
       const totalX = e.clientX - prev.startX;
@@ -253,7 +266,8 @@ export function startAsciiGalaxy(
     if ((e.pointerType === "touch" || next.locked) && e.cancelable) e.preventDefault();
   };
 
-  const onPointerUp = (e: PointerEvent) => {
+  function onPointerUp(e: PointerEvent) {
+    lastPointerAt = performance.now();
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
       resumeAt = performance.now() + RESUME_DELAY;
@@ -267,6 +281,18 @@ export function startAsciiGalaxy(
       }
       pinch = 0;
     }
+  }
+
+  // Drop every pointer and let the orbit come back, for events that never report a release.
+  function releaseAll() {
+    pointers.clear();
+    pinch = 0;
+    resumeAt = performance.now() + RESUME_DELAY;
+    canvas.style.cursor = "grab";
+  }
+  const onWindowBlur = () => releaseAll();
+  const onVisibility = () => {
+    if (document.hidden) releaseAll();
   };
 
   const onWheel = (e: WheelEvent) => {
@@ -280,6 +306,9 @@ export function startAsciiGalaxy(
   window.addEventListener("pointermove", onPointerMove, { passive: false });
   window.addEventListener("pointerup", onPointerUp);
   window.addEventListener("pointercancel", onPointerUp);
+  window.addEventListener("blur", onWindowBlur);
+  document.addEventListener("visibilitychange", onVisibility);
+  root.addEventListener("lostpointercapture", onPointerUp);
   root.addEventListener("wheel", onWheel, { passive: false });
 
   const ro = new ResizeObserver(resize);
@@ -321,6 +350,9 @@ export function startAsciiGalaxy(
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
+      window.removeEventListener("blur", onWindowBlur);
+      document.removeEventListener("visibilitychange", onVisibility);
+      root.removeEventListener("lostpointercapture", onPointerUp);
       root.removeEventListener("wheel", onWheel);
       renderer.destroy();
       canvas.remove();

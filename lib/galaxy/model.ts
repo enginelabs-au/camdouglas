@@ -76,7 +76,7 @@ export function createGalaxyModel(): GalaxyModel {
     return fillSeed / 4294967296;
   };
   const fillGauss = () => Math.sqrt(-2 * Math.log(Math.max(fill(), 0.000001))) * Math.cos(TAU * fill());
-  for (let i = 0; i < 3000; i++) {
+  for (let i = 0; i < 2500; i++) {
     const r = clamp(0.2 + Math.pow(fill(), 0.8) * 2.9, 0.2, 3.2);
     const arm = Math.floor(fill() * 4);
     const angle = (arm * TAU) / 4 + Math.log(r / 0.25) * 2.9 + fillGauss() * (0.34 + 0.14 * r);
@@ -86,12 +86,30 @@ export function createGalaxyModel(): GalaxyModel {
       a: angle,
       z: fillGauss() * (0.03 + 0.02 * r),
       col: b < 0.25 ? 1 : b < 0.4 ? 2 : 0,
-      v: 0.25 + fill() * 0.55,
+      v: 0.2 + fill() * 0.4,
       om: galaxyOmega(r),
     });
   }
+  // A little clumping, about a tenth more matter, gathered into arcs on different rings. Each
+  // ring turns at its own rate, so the arcs visibly slide past one another and show the rotation.
+  for (let c = 0; c < 18; c++) {
+    const cr = 0.55 + fill() * 2.2;
+    const ca = fill() * TAU;
+    for (let i = 0; i < 70; i++) {
+      const r = clamp(cr + fillGauss() * 0.05, 0.25, 3.2);
+      const b = fill();
+      arms.push({
+        r,
+        a: ca + fillGauss() * (0.22 / Math.sqrt(cr)),
+        z: fillGauss() * (0.03 + 0.02 * r),
+        col: b < 0.3 ? 1 : b < 0.45 ? 2 : 0,
+        v: 0.45 + fill() * 0.5,
+        om: galaxyOmega(r),
+      });
+    }
+  }
   // A soft shoulder just outside the bright hub, where the lane was emptiest.
-  for (let i = 0; i < 3500; i++) {
+  for (let i = 0; i < 1800; i++) {
     const r = 0.5 + fill() * 1.0;
     const b = fill();
     arms.push({
@@ -99,19 +117,19 @@ export function createGalaxyModel(): GalaxyModel {
       a: fill() * TAU,
       z: fillGauss() * (0.03 + 0.02 * r),
       col: b < 0.3 ? 1 : b < 0.45 ? 2 : 0,
-      v: 0.3 + fill() * 0.45,
+      v: 0.2 + fill() * 0.3,
       om: galaxyOmega(r),
     });
   }
-  for (let i = 0; i < 9000; i++) {
-    const r = clamp(0.2 + Math.pow(fill(), 1.15) * 2.7, 0.2, 3.0);
+  for (let i = 0; i < 6000; i++) {
+    const r = clamp(0.2 + Math.pow(fill(), 1.0) * 2.7, 0.2, 3.0);
     const b = fill();
     arms.push({
       r,
       a: fill() * TAU,
       z: fillGauss() * (0.03 + 0.02 * r),
       col: b < 0.2 ? 1 : b < 0.3 ? 2 : 0,
-      v: 0.28 + fill() * 0.42,
+      v: 0.15 + fill() * 0.3,
       om: galaxyOmega(r),
     });
   }
