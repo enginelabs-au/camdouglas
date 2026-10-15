@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
+import { Kicker } from "@/components/interface/Kicker";
 import { aboutTabs, type AboutTabId } from "@/config/about";
 
 export function About() {
@@ -24,7 +25,7 @@ export function About() {
 
   return (
     <article className="panel panel-wide">
-      <p className="kicker">{section.kicker}</p>
+      <Kicker text={section.kicker} index="03 / 05" />
       <h1>About</h1>
       <div className="panel-tabs" role="tablist" aria-label="About sections" onKeyDown={onTabKeyDown}>
         {aboutTabs.map((item) => (

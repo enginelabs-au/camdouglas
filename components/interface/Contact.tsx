@@ -1,3 +1,4 @@
+import { Kicker } from "@/components/interface/Kicker";
 import { contactCopy, site } from "@/config/site";
 
 export function Contact() {
@@ -5,7 +6,7 @@ export function Contact() {
 
   return (
     <article className="panel">
-      <p className="kicker">Studio and agency</p>
+      <Kicker text="Studio and agency" index="05 / 05" />
       <h1>{contactCopy.headline}</h1>
       <p className="lede">{contactCopy.lede}</p>
       <p>

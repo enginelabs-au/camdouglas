@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { reviewProviders } from "@/config/reviews";
+import { Kicker } from "@/components/interface/Kicker";
 import { PublishedReviews } from "@/components/interface/PublishedReviews";
 import { StarRating } from "@/components/interface/StarRating";
 import type { ReviewProviderId } from "@/config/types";
@@ -156,6 +157,7 @@ export function Reviews() {
 
   return (
     <article className="panel panel-wide">
+      <Kicker text="Students and clients" index="04 / 05" />
       <h1>Leave A Review For Cam</h1>
 
       <section className="stack review-compose" aria-label="Leave a review">

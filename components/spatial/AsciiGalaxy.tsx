@@ -7,7 +7,6 @@ import { startAsciiGalaxy, type GalaxyHandle } from "@/lib/asciiGalaxy";
 
 export function AsciiGalaxy() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<GalaxyHandle | null>(null);
   const { destination, reducedMotion, status, setStatus, resetNonce } = useExperience();
   const handledNonce = useRef(0);
@@ -19,11 +18,10 @@ export function AsciiGalaxy() {
 
   useEffect(() => {
     const root = rootRef.current;
-    const canvas = canvasRef.current;
-    if (!root || !canvas) return;
+    if (!root) return;
 
     const startDestination = destinationRef.current;
-    const handle = startAsciiGalaxy(root, canvas, {
+    const handle = startAsciiGalaxy(root, {
       reducedMotion,
       initialView: galaxyViews[startDestination],
     });
@@ -54,14 +52,12 @@ export function AsciiGalaxy() {
     handle.setView(view, destination === "home");
   }, [destination, resetNonce]);
 
+  // The renderer adds its own canvas to this element.
   return (
-    <div ref={rootRef} id="ascii-galaxy-only" className={`ascii-galaxy${status === "ready" ? " is-ready" : ""}`}>
-      <canvas
-        ref={canvasRef}
-        id="ascii-galaxy-canvas"
-        className="ascii-galaxy-canvas"
-        aria-hidden="true"
-      />
-    </div>
+    <div
+      ref={rootRef}
+      id="ascii-galaxy-only"
+      className={`ascii-galaxy${status === "ready" ? " is-ready" : ""}`}
+    />
   );
 }

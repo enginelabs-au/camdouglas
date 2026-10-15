@@ -50,6 +50,20 @@ export function Overlay() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [resetView, setDestination]);
 
+  // Cards glow where the pointer is. It only sets two CSS variables on the card under it.
+  useEffect(() => {
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
+      const card = (event.target as HTMLElement | null)?.closest<HTMLElement>(".offer-card, .engine-row, .review-card");
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+      card.style.setProperty("--my", `${event.clientY - rect.top}px`);
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
+
   return (
     <div className="overlay">
       <div className="fade-top" />

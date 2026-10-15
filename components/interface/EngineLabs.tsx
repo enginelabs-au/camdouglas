@@ -3,6 +3,7 @@
 import { engines } from "@/config/engines";
 import { engineLabs, site } from "@/config/site";
 import { useExperience } from "@/components/experience/ExperienceContext";
+import { Kicker } from "@/components/interface/Kicker";
 import { ExternalLink } from "@/components/interface/ExternalLink";
 import { StudentFeedback } from "@/components/interface/StudentFeedback";
 
@@ -12,7 +13,7 @@ export function EngineLabs() {
 
   return (
     <article className="panel panel-wide">
-      <p className="kicker">{site.softwareLabels.join(" · ")}</p>
+      <Kicker text={site.softwareLabels.join(" · ")} index="02 / 05" />
       <h1>{engineLabs.headline}</h1>
       <p className="lede">{engineLabs.lede}</p>
       <p>{engineLabs.summary}</p>

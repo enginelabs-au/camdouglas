@@ -2,6 +2,7 @@
 
 import { productionCopy, site } from "@/config/site";
 import { useExperience } from "@/components/experience/ExperienceContext";
+import { Kicker } from "@/components/interface/Kicker";
 import { ExternalLink } from "@/components/interface/ExternalLink";
 import { FeaturedOffers } from "@/components/interface/FeaturedOffers";
 import { Memberships } from "@/components/interface/Memberships";
@@ -14,7 +15,7 @@ export function Production() {
 
   return (
     <article className="panel panel-wide">
-      <p className="kicker">{site.musicLabels.join(" · ")}</p>
+      <Kicker text={site.musicLabels.join(" · ")} index="01 / 05" />
       <h1>{productionCopy.headline}</h1>
       <p className="lede">{productionCopy.lede}</p>
       <p className="audience">{productionCopy.audience}</p>

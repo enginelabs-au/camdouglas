@@ -1,3 +1,13 @@
+import {
+  createGalaxyModel,
+  type GalaxyModel,
+  type Renderer,
+  type ViewState,
+  clamp,
+} from "@/lib/galaxy/model";
+import { createRenderer2D } from "@/lib/galaxy/renderer2d";
+import { createRendererGL } from "@/lib/galaxy/rendererGL";
+
 export type GalaxyView = {
   yaw: number;
   pitch: number;
@@ -5,175 +15,45 @@ export type GalaxyView = {
 };
 
 export type GalaxyHandle = {
+  kind: Renderer["kind"];
   setView: (view: GalaxyView, auto?: boolean) => void;
   reset: (view: GalaxyView) => void;
   setPaused: (paused: boolean) => void;
   destroy: () => void;
 };
 
-const TAU = Math.PI * 2;
-const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
 const HOME_VIEW: GalaxyView = { yaw: 0.35, pitch: 0.83, zoom: 1 };
+
+// A canvas can only ever hold one kind of context, so each renderer gets its own canvas and a
+// failed WebGL attempt is thrown away before the 2D fallback is tried.
+function mountRenderer(root: HTMLElement, model: GalaxyModel) {
+  const forced2d = new URLSearchParams(window.location.search).get("renderer") === "2d";
+  const attempts: Array<(canvas: HTMLCanvasElement) => Renderer | null> = [];
+  if (!forced2d) attempts.push((canvas) => createRendererGL(canvas, model));
+  attempts.push((canvas) => createRenderer2D(canvas, model));
+
+  for (const attempt of attempts) {
+    const canvas = document.createElement("canvas");
+    canvas.id = "ascii-galaxy-canvas";
+    canvas.className = "ascii-galaxy-canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    root.appendChild(canvas);
+    const renderer = attempt(canvas);
+    if (renderer) return { canvas, renderer };
+    canvas.remove();
+  }
+  return null;
+}
 
 export function startAsciiGalaxy(
   root: HTMLElement,
-  canvas: HTMLCanvasElement,
   options?: { reducedMotion?: boolean; initialView?: GalaxyView },
 ): GalaxyHandle | null {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-
-  let seed = 24171;
-  function rand() {
-    seed = (1664525 * seed + 1013904223) >>> 0;
-    return seed / 4294967296;
-  }
-
-  function gauss() {
-    return Math.sqrt(-2 * Math.log(Math.max(rand(), 0.000001))) * Math.cos(TAU * rand());
-  }
-
-  const ramp = " .,:;+=*oO#%@$";
-  const palette = [
-    [177, 194, 225],
-    [105, 146, 205],
-    [255, 211, 151],
-    [233, 144, 105],
-    [240, 169, 92],
-    [254, 227, 167],
-    [105, 120, 166],
-    [247, 246, 230],
-  ] as const;
-
-  // Pre-built fill styles (palette x quantised alpha) so the draw loop never builds strings.
-  const ALPHA_STEPS = 24;
-  const styles: string[] = [];
-  for (const rgb of palette) {
-    for (let i = 0; i < ALPHA_STEPS; i++) {
-      styles.push(`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(i / (ALPHA_STEPS - 1)).toFixed(3)})`);
-    }
-  }
-
-  type Particle = { r: number; a: number; z: number; col: number; v: number; om: number };
-  const arms: Particle[] = [];
-  const halo: Particle[] = [];
-  const disk: Particle[] = [];
-  const back: Array<{ u: number; v: number; phase: number; brightness: number; col: number }> = [];
-  const systems: Array<{
-    r: number;
-    a: number;
-    om: number;
-    col: number;
-    planets: Array<{
-      a: number;
-      e: number;
-      n: number;
-      phase: number;
-      node: number;
-      incl: number;
-      col: number;
-    }>;
-  }> = [];
-
-  // Angular speeds depend only on radius, so they are computed once here, not every frame.
-  function galaxyOmega(r: number) {
-    return Math.sqrt(0.0004 / Math.pow(r * r + 0.055, 1.5) + 0.005 / (r * r + 0.15));
-  }
-
-  for (let i = 0; i < 3500; i++) {
-    const r = clamp(0.18 + Math.pow(rand(), 0.72) * 3.1, 0.18, 3.3);
-    const arm = Math.floor(rand() * 4);
-    const angle = (arm * TAU) / 4 + Math.log(r / 0.25) * 2.9 + gauss() * (0.16 + 0.08 * r);
-    const b = rand();
-    arms.push({
-      r,
-      a: angle,
-      z: gauss() * (0.024 + 0.02 * r),
-      col: b < 0.23 ? 1 : b < 0.4 ? 2 : b < 0.44 ? 3 : 0,
-      v: 0.18 + rand() * 0.72,
-      om: galaxyOmega(r),
-    });
-  }
-
-  for (let i = 0; i < 530; i++) {
-    const r = Math.abs(gauss()) * 0.76;
-    halo.push({
-      r,
-      a: rand() * TAU,
-      z: gauss() * 0.16,
-      col: rand() < 0.18 ? 2 : 6,
-      v: 0.13 + rand() * 0.43,
-      om: galaxyOmega(r) * 0.8,
-    });
-  }
-
-  for (let i = 0; i < 850; i++) {
-    const r = 0.16 + Math.sqrt(rand()) * 0.51;
-    disk.push({
-      r,
-      a: rand() * TAU,
-      z: gauss() * 0.012,
-      v: 0.45 + rand() * 0.58,
-      col: rand() < 0.45 ? 4 : 5,
-      om: 0.034 / Math.pow(r, 1.5),
-    });
-  }
-
-  for (let i = 0; i < 330; i++) {
-    back.push({
-      u: rand(),
-      v: rand(),
-      phase: rand(),
-      brightness: 0.13 + rand() * 0.42,
-      col: rand() < 0.25 ? 1 : 6,
-    });
-  }
-
-  for (let i = 0; i < 6; i++) {
-    const r = 0.85 + i * 0.32;
-    const a = i * 2.34 + 0.4;
-    const planets = [];
-    for (let p = 0; p < 1 + (i % 3); p++) {
-      const semi = 0.11 + p * 0.065 + rand() * 0.035;
-      const e = 0.06 + rand() * 0.24;
-      planets.push({
-        a: semi,
-        e,
-        n: Math.sqrt(0.0006 / Math.pow(semi, 3)),
-        phase: rand() * TAU,
-        node: rand() * TAU,
-        incl: 0.25 + rand() * 0.7,
-        col: (i + p) % 4,
-      });
-    }
-    systems.push({
-      r,
-      a,
-      om: galaxyOmega(r),
-      planets,
-      col: i % 3 === 0 ? 7 : i % 3 === 1 ? 1 : 2,
-    });
-  }
-
-  const QUALITY = [
-    { dpr: 1.6, interval: 34 },
-    { dpr: 1.25, interval: 50 },
-    { dpr: 1, interval: 67 },
-  ] as const;
-  const lowPower = (navigator.hardwareConcurrency || 8) <= 4;
-  let quality = lowPower ? 1 : 0;
-
-  let W = 700;
-  let H = 500;
-  let dpr = 1;
-  let font = 11;
-  let cw = 7;
-  let ch = 13;
-  let cols = 100;
-  let rows = 40;
-  let energy: Float32Array | undefined;
-  let colID: Uint8Array | undefined;
-  let priority: Float32Array | undefined;
+  const model = createGalaxyModel();
+  const mounted = mountRenderer(root, model);
+  if (!mounted) return null;
+  const { canvas, renderer } = mounted;
+  root.dataset.renderer = renderer.kind;
 
   const initial = options?.initialView ?? HOME_VIEW;
   const state = {
@@ -190,207 +70,24 @@ export function startAsciiGalaxy(
     frame: 0,
     last: 0,
   };
+  const view: ViewState = { t: 0, yaw: initial.yaw, pitch: initial.pitch, zoom: initial.zoom };
 
-  // Trig for the current view, refreshed once per frame instead of once per particle.
-  let c = 1;
-  let s = 0;
-  let cp = 1;
-  let sp = 0;
-  let baseScale = 1;
-  function prepareView() {
-    c = Math.cos(state.yaw);
-    s = Math.sin(state.yaw);
-    cp = Math.cos(state.pitch);
-    sp = Math.sin(state.pitch);
-    baseScale = Math.min(W / 6.9, H / 3.5) * state.zoom * 7;
-  }
-
-  const out = { x: 0, y: 0, scale: 0 };
-  function project(x: number, y: number, z: number) {
-    const xx = x * c - y * s;
-    const yy = x * s + y * c;
-    const zz = yy * sp + z * cp;
-    const dy = yy * cp - z * sp;
-    const scale = baseScale / (7 + 0.4 * zz);
-    out.x = W * 0.5 + xx * scale;
-    out.y = H * 0.51 + dy * scale;
-    out.scale = scale;
-    return out;
-  }
-
-  function put(x: number, y: number, v: number, col: number) {
-    if (!energy || !priority || !colID) return;
-    const cx = Math.floor(x / cw);
-    const cy = Math.floor(y / ch);
-    if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) return;
-    const k = cy * cols + cx;
-    energy[k] = Math.min(2.5, energy[k] + v);
-    if (v > priority[k]) {
-      priority[k] = v;
-      colID[k] = col;
-    }
-  }
-
-  function solveE(M: number, e: number) {
-    let E = M;
-    for (let i = 0; i < 5; i++) {
-      E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
-    }
-    return E;
-  }
-
-  function draw() {
-    if (!energy || !priority || !colID) return;
-    energy.fill(0);
-    priority.fill(0);
-    colID.fill(0);
-
-    const t = state.t;
-    prepareView();
-
-    for (const p of back) {
-      put(
-        (p.u * W + Math.sin(state.yaw) * p.phase * 35 + W) % W,
-        (p.v * H + Math.cos(state.pitch) * p.phase * 15 + H) % H,
-        p.brightness * 0.43,
-        p.col,
-      );
-    }
-
-    for (const p of arms) {
-      const a = p.a + t * p.om;
-      const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      put(v.x, v.y, p.v * (1.15 - 0.17 * p.r), p.col);
-    }
-
-    for (const p of halo) {
-      const a = p.a + t * p.om;
-      const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      put(v.x, v.y, p.v, p.col);
-    }
-
-    for (const p of disk) {
-      const a = p.a + t * p.om;
-      const v = project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      const doppler = clamp(0.86 + 0.43 * Math.cos(a - state.yaw), 0.35, 1.3);
-      put(v.x, v.y, p.v * doppler, p.col);
-    }
-
-    const origin = project(0, 0, 0);
-    const center = { x: origin.x, y: origin.y, scale: origin.scale };
-    const rad = 0.17 * center.scale;
-
-    for (let row = 0; row < rows; row++) {
-      const y = (row + 0.5) * ch - center.y;
-      if (Math.abs(y) > rad) continue;
-      for (let col = 0; col < cols; col++) {
-        const x = (col + 0.5) * cw - center.x;
-        if (x * x + y * y < rad * rad * 0.85) {
-          const k = row * cols + col;
-          energy[k] = 0;
-          priority[k] = 0;
-        }
-      }
-    }
-
-    for (let a = 0; a < TAU; a += 0.045) {
-      put(
-        center.x + rad * Math.cos(a),
-        center.y + rad * Math.sin(a),
-        0.7 + 0.45 * Math.max(0, Math.cos(a - state.yaw)),
-        a > Math.PI ? 5 : 4,
-      );
-    }
-
-    for (let a = 3.43; a < 6.05; a += 0.07) {
-      put(center.x + rad * 1.48 * Math.cos(a), center.y + rad * 1.48 * Math.sin(a), 0.27, 7);
-    }
-
-    for (const s of systems) {
-      const a = s.a + t * s.om;
-      const x = s.r * Math.cos(a);
-      const y = s.r * Math.sin(a);
-      const star = project(x, y, 0.03);
-      put(star.x, star.y, 2.5, s.col);
-
-      for (const p of s.planets) {
-        const M = p.phase + t * p.n;
-        const E = solveE(M, p.e);
-        const ox = p.a * (Math.cos(E) - p.e);
-        const oy = p.a * Math.sqrt(1 - p.e * p.e) * Math.sin(E);
-        const cs = Math.cos(p.node);
-        const sn = Math.sin(p.node);
-        const xx = x + ox * cs - oy * sn;
-        const yy = y + (ox * sn + oy * cs) * Math.cos(p.incl);
-        const zz = (ox * sn + oy * cs) * Math.sin(p.incl);
-        const pt = project(xx, yy, zz);
-        put(pt.x, pt.y, 1.8, p.col);
-
-        for (let j = 0; j < 22; j++) {
-          const q = (j * TAU) / 22;
-          const ex = p.a * (Math.cos(q) - p.e);
-          const ey = p.a * Math.sqrt(1 - p.e * p.e) * Math.sin(q);
-          const po = project(
-            x + ex * cs - ey * sn,
-            y + (ex * sn + ey * cs) * Math.cos(p.incl),
-            (ex * sn + ey * cs) * Math.sin(p.incl),
-          );
-          put(po.x, po.y, 0.11, 6);
-        }
-      }
-    }
-
-    if (!ctx) return;
-    ctx.fillStyle = "#03050a";
-    ctx.fillRect(0, 0, W, H);
-    ctx.font = `${font}px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    let lastStyle = -1;
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const k = y * cols + x;
-        const v = energy[k];
-        if (v < 0.13) continue;
-        const idx = clamp(
-          Math.floor(Math.pow(Math.min(v, 1.8) / 1.8, 0.68) * (ramp.length - 1)),
-          1,
-          ramp.length - 1,
-        );
-        const alpha = clamp(0.2 + v * 0.54, 0.22, 1);
-        const style = colID[k] * ALPHA_STEPS + Math.round(alpha * (ALPHA_STEPS - 1));
-        if (style !== lastStyle) {
-          ctx.fillStyle = styles[style];
-          lastStyle = style;
-        }
-        ctx.fillText(ramp[idx], (x + 0.5) * cw, (y + 0.5) * ch);
-      }
-    }
+  function drawNow() {
+    view.t = state.t;
+    view.yaw = state.yaw;
+    view.pitch = state.pitch;
+    view.zoom = state.zoom;
+    renderer.draw(view);
   }
 
   function resize() {
-    if (!ctx) return;
     const rect = root.getBoundingClientRect();
-    W = Math.max(300, rect.width);
-    H = Math.max(320, rect.height);
-    dpr = Math.min(window.devicePixelRatio || 1, QUALITY[quality].dpr);
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    font = clamp(W / 108, 9.2, 12.6);
-    cw = font * 0.64;
-    ch = font * 1.14;
-    cols = Math.ceil(W / cw);
-    rows = Math.ceil(H / ch);
-    energy = new Float32Array(cols * rows);
-    priority = new Float32Array(cols * rows);
-    colID = new Uint8Array(cols * rows);
-    draw();
+    renderer.resize(rect.width, rect.height);
+    drawNow();
   }
 
-  // Self-tuning quality: if this device cannot keep up, step down resolution and frame rate.
-  // It only ever steps down, so it cannot flap back and forth.
+  // The 2D fallback tunes itself: if the device cannot keep up it steps down resolution and
+  // frame rate, and it only ever steps down so it cannot flap. WebGL has nothing to step to.
   let raf = 0;
   let dirty = true;
   let slowFrames = 0;
@@ -398,12 +95,10 @@ export function startAsciiGalaxy(
   let avgTick = 16;
   let avgDraw = 4;
 
-  function stepDown() {
-    if (quality >= QUALITY.length - 1) return;
-    quality += 1;
-    sinceStep = 0;
-    resize();
-  }
+  // Lightweight readout (renderer, frames per second, JS time per draw) for diagnosing devices.
+  let statFrames = 0;
+  let statDrawMs = 0;
+  let statSince = 0;
 
   function animate(now: number) {
     const tick = now - (state.last || now);
@@ -423,23 +118,37 @@ export function startAsciiGalaxy(
       Math.abs(state.targetZoom - state.zoom) < 0.0004;
     const idle = state.paused && settled && !dirty;
 
-    if (now - state.frame > QUALITY[quality].interval && !document.hidden && !idle) {
+    if (now - state.frame >= renderer.interval() && !document.hidden && !idle) {
       const began = performance.now();
-      draw();
+      drawNow();
+      const spent = performance.now() - began;
       dirty = false;
       state.frame = now;
 
+      statFrames += 1;
+      statDrawMs += spent;
+      if (now - statSince > 1000) {
+        if (statSince) {
+          root.dataset.fps = String(Math.round((statFrames * 1000) / (now - statSince)));
+          root.dataset.drawMs = (statDrawMs / statFrames).toFixed(2);
+        }
+        statSince = now;
+        statFrames = 0;
+        statDrawMs = 0;
+      }
+
       // Ignore the long gaps left by background tabs; they say nothing about device speed.
-      if (tick > 0 && tick < 400) {
+      if (renderer.kind === "2d" && tick > 0 && tick < 400) {
         avgTick += (tick - avgTick) * 0.05;
-        avgDraw += (performance.now() - began - avgDraw) * 0.05;
+        avgDraw += (spent - avgDraw) * 0.05;
         sinceStep += 1;
         // 45ms is well below 30fps, so phones that cap at 30fps in battery saver stay untouched.
         if (sinceStep > 90 && (avgTick > 45 || avgDraw > 12)) slowFrames += 1;
         else slowFrames = 0;
         if (slowFrames > 20) {
           slowFrames = 0;
-          stepDown();
+          sinceStep = 0;
+          if (renderer.stepDown()) resize();
         }
       }
     }
@@ -544,24 +253,25 @@ export function startAsciiGalaxy(
   raf = requestAnimationFrame(animate);
 
   return {
-    setView(view, auto = false) {
+    kind: renderer.kind,
+    setView(next, auto = false) {
       dirty = true;
-      state.targetYaw = view.yaw;
-      state.targetPitch = view.pitch;
-      state.targetZoom = view.zoom;
+      state.targetYaw = next.yaw;
+      state.targetPitch = next.pitch;
+      state.targetZoom = next.zoom;
       state.auto = auto;
     },
-    reset(view) {
+    reset(next) {
       state.t = 0;
-      state.yaw = view.yaw;
-      state.targetYaw = view.yaw;
-      state.pitch = view.pitch;
-      state.targetPitch = view.pitch;
-      state.zoom = view.zoom;
-      state.targetZoom = view.zoom;
+      state.yaw = next.yaw;
+      state.targetYaw = next.yaw;
+      state.pitch = next.pitch;
+      state.targetPitch = next.pitch;
+      state.zoom = next.zoom;
+      state.targetZoom = next.zoom;
       state.auto = !options?.reducedMotion;
       state.paused = Boolean(options?.reducedMotion);
-      draw();
+      drawNow();
     },
     setPaused(paused) {
       state.paused = paused;
@@ -575,6 +285,9 @@ export function startAsciiGalaxy(
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerUp);
       root.removeEventListener("wheel", onWheel);
+      renderer.destroy();
+      canvas.remove();
+      delete root.dataset.renderer;
     },
   };
 }
