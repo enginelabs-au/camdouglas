@@ -25,7 +25,7 @@ export function About() {
 
   return (
     <article className="panel panel-wide">
-      <Kicker text={section.kicker} index="03 / 05" />
+      <Kicker text={section.kicker} />
       <h1>About</h1>
       <div className="panel-tabs" role="tablist" aria-label="About sections" onKeyDown={onTabKeyDown}>
         {aboutTabs.map((item) => (

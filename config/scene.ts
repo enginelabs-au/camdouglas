@@ -60,7 +60,7 @@ export const cameraDestinations: Record<CameraDestination["id"], CameraDestinati
 };
 
 export const galaxyViews: Record<CameraDestination["id"], GalaxyView> = {
-  home: { yaw: 0.35, pitch: 0.83, zoom: 1 },
+  home: { yaw: 0.35, pitch: 1.1, zoom: 1 },
   production: { yaw: 1.25, pitch: 0.52, zoom: 1.38 },
   "engine-labs": { yaw: -0.85, pitch: 1.12, zoom: 0.88 },
   about: { yaw: 2.05, pitch: 0.38, zoom: 1.18 },

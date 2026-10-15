@@ -13,7 +13,7 @@ export function EngineLabs() {
 
   return (
     <article className="panel panel-wide">
-      <Kicker text={site.softwareLabels.join(" · ")} index="02 / 05" />
+      <Kicker text={site.softwareLabels.join(" · ")} />
       <h1>{engineLabs.headline}</h1>
       <p className="lede">{engineLabs.lede}</p>
       <p>{engineLabs.summary}</p>

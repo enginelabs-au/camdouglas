@@ -15,7 +15,7 @@ export function Production() {
 
   return (
     <article className="panel panel-wide">
-      <Kicker text={site.musicLabels.join(" · ")} index="01 / 05" />
+      <Kicker text={site.musicLabels.join(" · ")} />
       <h1>{productionCopy.headline}</h1>
       <p className="lede">{productionCopy.lede}</p>
       <p className="audience">{productionCopy.audience}</p>

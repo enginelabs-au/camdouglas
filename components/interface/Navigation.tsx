@@ -4,7 +4,6 @@ import Link from "next/link";
 import { cameraDestinations, primaryNav } from "@/config/scene";
 import { site } from "@/config/site";
 import { useExperience } from "@/components/experience/ExperienceContext";
-import { SydneyClock } from "@/components/interface/SydneyClock";
 import { pathForDestination } from "@/lib/routes";
 
 export function Navigation() {
@@ -24,7 +23,6 @@ export function Navigation() {
         >
           {site.name}
         </Link>
-        <SydneyClock />
       </p>
       <nav className="glass-nav" aria-label="Primary">
         {primaryNav

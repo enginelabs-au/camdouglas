@@ -6,7 +6,7 @@ export function Contact() {
 
   return (
     <article className="panel">
-      <Kicker text="Studio and agency" index="05 / 05" />
+      <Kicker text="Studio and agency" />
       <h1>{contactCopy.headline}</h1>
       <p className="lede">{contactCopy.lede}</p>
       <p>

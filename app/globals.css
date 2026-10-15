@@ -1304,50 +1304,16 @@ button.offer-cta {
   background: radial-gradient(ellipse at 50% 45%, transparent 38%, rgba(3, 5, 10, 0.5) 100%);
 }
 
-/* Header: name, live Sydney time, and the active page marked with a lit dot. */
+/* Header: the name. */
 .site-mark {
   display: flex;
   align-items: baseline;
   gap: 0.8rem;
 }
 
-.site-clock {
-  display: inline-flex;
-  align-items: center;
-  min-width: 6.6em;
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  color: var(--ink-soft);
-}
-
-.site-clock::before {
-  content: "";
-  width: 0.38rem;
-  height: 0.38rem;
-  margin-right: 0.5rem;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 0.7rem var(--amber);
-  animation: beacon 2.6s ease-in-out infinite;
-}
-
 .glass-nav a {
   position: relative;
   transition: background 0.2s, color 0.2s;
-}
-
-.glass-nav a[aria-current="page"]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 0.14rem;
-  width: 0.2rem;
-  height: 0.2rem;
-  margin-left: -0.1rem;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 0.55rem var(--amber);
 }
 
 /* Hero: a blinking cursor on the hint, and a warm glow behind the name. */
@@ -1406,11 +1372,6 @@ button.offer-cta {
   font-size: 0.64rem;
   letter-spacing: 0.18em;
   color: var(--amber);
-}
-
-.panel .kicker .panel-tag {
-  flex: none;
-  color: rgba(247, 244, 239, 0.4);
 }
 
 .panel > h1 {
@@ -1650,20 +1611,9 @@ button.offer-cta {
   }
 }
 
-@keyframes beacon {
-  50% {
-    opacity: 0.35;
-  }
-}
-
 @media (max-width: 860px), (pointer: coarse) {
   .site-mark {
     gap: 0.6rem;
-  }
-
-  .site-clock {
-    font-size: 0.56rem;
-    min-width: 6em;
   }
 
   .panel > h1 {
@@ -1671,7 +1621,7 @@ button.offer-cta {
   }
 }
 
-/* Pointer light. Menu items and footer links carry a small amber glow under the pointer, the
+/* Pointer light. Menu items and footer links carry a small white glow under the pointer, the
    same idea as the cards but a quarter the size. --mx/--my are set in Overlay.tsx. */
 .glass-nav a,
 .site-footer a {
@@ -1690,7 +1640,7 @@ button.offer-cta {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: radial-gradient(4.5rem circle at var(--mx, 50%) var(--my, 50%), rgba(240, 169, 92, 0.22), transparent 60%);
+  background: radial-gradient(4.5rem circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.2), transparent 60%);
   opacity: 0;
   transition: opacity 0.25s;
   pointer-events: none;
@@ -1703,25 +1653,29 @@ button.offer-cta {
   }
 }
 
-/* Cursor-lit text: the name in the header and the hero title and subtitle. An amber copy of the
-   text sits over the original and is masked to a soft circle around the pointer, so only the
-   letters near the cursor warm up. The copy is marked decorative (the "/ ''" alternative text)
-   so assistive technology does not read it twice. --glow switches it on while the pointer is
-   near; the hero has pointer-events off, so Overlay.tsx hit-tests it by geometry. */
+/* Cursor-lit text: the name in the header and the hero title and subtitle. A white copy of the
+   text with a soft bloom sits over the original and is masked to a circle around the pointer, so
+   only the letters near the cursor glow. The copy is padded outwards by the bloom's room so the
+   glow is not clipped at the text box, and the mask is shifted by the same amount. It is marked
+   decorative (the "/ ''" alternative text) so assistive technology does not read it twice.
+   --glow switches it on while the pointer is near; the hero has pointer-events off, so
+   Overlay.tsx hit-tests it by geometry. */
 .cursor-lit {
   position: relative;
   --glow: 0;
   --reach: 5rem;
+  --bloom: 0.3em;
 }
 
 .cursor-lit::after {
   content: attr(data-text) / "";
   position: absolute;
-  inset: 0;
-  color: var(--amber);
-  text-shadow: none;
-  -webkit-mask-image: radial-gradient(var(--reach) circle at var(--mx, 50%) var(--my, 50%), rgba(0, 0, 0, 0.8), transparent 70%);
-  mask-image: radial-gradient(var(--reach) circle at var(--mx, 50%) var(--my, 50%), rgba(0, 0, 0, 0.8), transparent 70%);
+  inset: -0.4em;
+  padding: 0.4em;
+  color: #fff;
+  text-shadow: 0 0 var(--bloom) rgba(255, 255, 255, 0.7);
+  -webkit-mask-image: radial-gradient(var(--reach) circle at calc(var(--mx, 50%) + 0.4em) calc(var(--my, 50%) + 0.4em), #000, transparent 70%);
+  mask-image: radial-gradient(var(--reach) circle at calc(var(--mx, 50%) + 0.4em) calc(var(--my, 50%) + 0.4em), #000, transparent 70%);
   opacity: var(--glow);
   transition: opacity 0.3s;
   pointer-events: none;
@@ -1729,6 +1683,7 @@ button.offer-cta {
 
 .hero h1.cursor-lit {
   --reach: 7.5rem;
+  --bloom: 0.07em;
 }
 
 .site-mark a.cursor-lit {
@@ -1738,7 +1693,6 @@ button.offer-cta {
 @media (prefers-reduced-motion: reduce) {
   .panel,
   .panel > *,
-  .site-clock::before,
   .hero-copy .hero-hint::after {
     animation: none;
   }

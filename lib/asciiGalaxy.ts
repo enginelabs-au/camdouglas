@@ -22,7 +22,7 @@ export type GalaxyHandle = {
   destroy: () => void;
 };
 
-const HOME_VIEW: GalaxyView = { yaw: 0.35, pitch: 0.83, zoom: 1 };
+const HOME_VIEW: GalaxyView = { yaw: 0.35, pitch: 1.1, zoom: 1 };
 
 // A canvas can only ever hold one kind of context, so each renderer gets its own canvas and a
 // failed WebGL attempt is thrown away before the 2D fallback is tried.
@@ -112,9 +112,9 @@ export function startAsciiGalaxy(
     state.last = now;
     if (!state.paused) {
       state.t += dt * state.velocity;
-      // A slow camera drift (one lap in about seventeen minutes) adds parallax without
-      // adding to the galaxy's own spin, which is where the motion should come from.
-      if (state.auto) state.targetYaw += dt * 0.006;
+      // The whole galaxy turns as one mass: a steady orbit, about one lap a minute, close to the
+      // feel of dragging it by hand. The stars' own gentle differential spin comes from the model.
+      if (state.auto) state.targetYaw += dt * 0.11;
     }
     state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
     state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);
