@@ -76,8 +76,21 @@ export function createGalaxyModel(): GalaxyModel {
     return fillSeed / 4294967296;
   };
   const fillGauss = () => Math.sqrt(-2 * Math.log(Math.max(fill(), 0.000001))) * Math.cos(TAU * fill());
+  // Dark lanes: thin bands of near-empty space between the rings, so each ring stands apart.
+  // The fill stars thin out hard inside them (the original arms and hub are left alone).
+  const LANES = [0.62, 0.92, 1.25, 1.62, 2.02, 2.45, 2.9];
+  const laneOpen = (r: number) => {
+    let open = 1;
+    for (const l of LANES) open *= 1 - 0.92 * Math.exp(-(((r - l) / 0.085) ** 2));
+    return open;
+  };
+  const fillRadius = (draw: () => number) => {
+    let r = draw();
+    for (let tries = 0; tries < 8 && fill() > laneOpen(r); tries++) r = draw();
+    return r;
+  };
   for (let i = 0; i < 2500; i++) {
-    const r = clamp(0.2 + Math.pow(fill(), 0.8) * 2.9, 0.2, 3.2);
+    const r = fillRadius(() => clamp(0.2 + Math.pow(fill(), 0.8) * 2.9, 0.2, 3.2));
     const arm = Math.floor(fill() * 4);
     const angle = (arm * TAU) / 4 + Math.log(r / 0.25) * 2.9 + fillGauss() * (0.34 + 0.14 * r);
     const b = fill();
@@ -110,7 +123,7 @@ export function createGalaxyModel(): GalaxyModel {
   }
   // A soft shoulder just outside the bright hub, where the lane was emptiest.
   for (let i = 0; i < 1800; i++) {
-    const r = 0.5 + fill() * 1.0;
+    const r = fillRadius(() => 0.5 + fill() * 1.0);
     const b = fill();
     arms.push({
       r,
@@ -122,7 +135,7 @@ export function createGalaxyModel(): GalaxyModel {
     });
   }
   for (let i = 0; i < 6000; i++) {
-    const r = clamp(0.2 + Math.pow(fill(), 1.0) * 2.7, 0.2, 3.0);
+    const r = fillRadius(() => clamp(0.2 + Math.pow(fill(), 1.0) * 2.7, 0.2, 3.0));
     const b = fill();
     arms.push({
       r,

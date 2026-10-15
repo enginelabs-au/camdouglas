@@ -125,9 +125,14 @@ export function startAsciiGalaxy(
       state.t += dt * state.velocity;
       // The whole galaxy turns as one mass: a steady orbit, about one lap a minute, close to the
       // feel of dragging it by hand. The stars' own gentle differential spin comes from the model.
-      // Zooming in speeds the orbit up (about 2x at 1.5x zoom, 5x at 2.5x zoom), and the speed
-      // eases back as the zoom does, because it follows the smoothed zoom rather than the target.
-      if (state.auto) state.targetYaw += dt * 0.11 * Math.pow(Math.max(1, state.zoom), 1.8);
+      // Zooming in speeds the orbit up (about 2x at 1.5x zoom, 5x at 2.5x zoom). The rate follows
+      // the zoom target and is applied to the yaw directly as well as its target, so the speed
+      // changes the instant the zoom does instead of lagging behind the smoothing.
+      if (state.auto) {
+        const step = dt * 0.11 * Math.pow(Math.max(1, state.targetZoom), 1.8);
+        state.yaw += step;
+        state.targetYaw += step;
+      }
     }
     if (pointers.size > 0 && performance.now() - lastPointerAt > STALE_POINTER) releaseAll();
     if (orbit && !state.auto && !state.paused && pointers.size === 0 && now >= resumeAt) {
