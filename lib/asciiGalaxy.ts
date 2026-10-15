@@ -302,9 +302,8 @@ export function startAsciiGalaxy(
 
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
+    // Zooming never pauses the orbit: its speed follows the zoom immediately instead.
     state.targetZoom = clamp(state.targetZoom * Math.exp(-e.deltaY * 0.001), 0.6, 2.5);
-    state.auto = false;
-    resumeAt = performance.now() + RESUME_DELAY;
   };
 
   window.addEventListener("pointerdown", onPointerDown, { passive: false, capture: true });
