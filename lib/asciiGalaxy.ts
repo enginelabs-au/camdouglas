@@ -75,6 +75,7 @@ export function startAsciiGalaxy(
   // after they let go, so a drag never leaves the galaxy stuck.
   let orbit = state.auto;
   let resumeAt = 0;
+  let speedMul = 1;
   const RESUME_DELAY = 1200;
   // When the last pointer event arrived. A pointer that never reports its release (the mouse let
   // go outside the window, a lost capture, a tab switch) would otherwise hold the orbit off for
@@ -125,11 +126,12 @@ export function startAsciiGalaxy(
       state.t += dt * state.velocity;
       // The whole galaxy turns as one mass: a steady orbit, about one lap a minute, close to the
       // feel of dragging it by hand. The stars' own gentle differential spin comes from the model.
-      // Zooming in speeds the orbit up (about 2x at 1.5x zoom, 5x at 2.5x zoom). The rate follows
-      // the zoom target and is applied to the yaw directly as well as its target, so the speed
-      // changes the instant the zoom does instead of lagging behind the smoothing.
+      // Zooming in speeds the orbit up gently (about 1.4x at 1.5x zoom, 2.3x at 2.5x zoom). The
+      // speed multiplier eases toward its goal so it never steps or stalls, and it is applied to
+      // the yaw directly as well as its target so the motion stays continuous through zooming.
+      speedMul += (Math.pow(Math.max(1, state.targetZoom), 0.9) - speedMul) * Math.min(1, dt * 6);
       if (state.auto) {
-        const step = dt * 0.11 * Math.pow(Math.max(1, state.targetZoom), 1.8);
+        const step = dt * 0.11 * speedMul;
         state.yaw += step;
         state.targetYaw += step;
       }
