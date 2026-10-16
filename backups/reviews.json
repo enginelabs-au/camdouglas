@@ -1,6 +1,17 @@
 {
   "reviews": [
     {
+      "id": "rev_95850ee9af5fff07",
+      "name": "damianhanna",
+      "handle": "damianhanna",
+      "quote": "I had a 1on1 Ableton production, mixing and mastering session with Cam and loved the advanced tipps and feedback he gave me. It was great to be able to elevate beyond the basics and also talk creatively about the work with helpful insights.",
+      "provider": "github",
+      "profileUrl": "https://github.com/damianhanna",
+      "avatar": "https://avatars.githubusercontent.com/u/343484351?v=4",
+      "rating": 5,
+      "date": "2026-10-16"
+    },
+    {
       "id": "rev_2958c8db94b66f89",
       "name": "Shayazfr",
       "handle": "Shayazfr",
