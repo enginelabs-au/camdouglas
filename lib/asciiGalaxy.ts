@@ -70,13 +70,11 @@ export function startAsciiGalaxy(
     frame: 0,
     last: 0,
   };
-  // Whether the current page wants the galaxy to orbit by itself (the home page does). Dragging
-  // or zooming switches the orbit off while the visitor is steering, and it resumes a moment
-  // after they let go, so a drag never leaves the galaxy stuck.
+  // Whether the current page wants the galaxy to orbit by itself (the home page does). A mouse
+  // drag holds the orbit off only while the button is down; the moment nothing is holding the
+  // galaxy it orbits again, so it is never frozen when the visitor is not actively holding it.
   let orbit = state.auto;
-  let resumeAt = 0;
   let speedMul = 1;
-  const RESUME_DELAY = 1200;
   // When the last pointer event arrived. A pointer that never reports its release (the mouse let
   // go outside the window, a lost capture, a tab switch) would otherwise hold the orbit off for
   // good, so stale pointers are dropped.
@@ -137,11 +135,9 @@ export function startAsciiGalaxy(
       }
     }
     if (pointers.size > 0 && performance.now() - lastPointerAt > STALE_POINTER) releaseAll();
-    if (orbit && !state.auto && !state.paused && pointers.size === 0 && now >= resumeAt) {
-      state.auto = true;
-      // Carry on from where the visitor left the view rather than easing back to a stale target.
-      state.targetYaw = state.yaw;
-    }
+    // Nothing is holding the galaxy, so it orbits. The target is left alone so the tail of a drag
+    // keeps easing out while the orbit carries on underneath it.
+    if (orbit && !state.auto && !state.paused && pointers.size === 0) state.auto = true;
     state.yaw += (state.targetYaw - state.yaw) * Math.min(1, dt * 5);
     state.pitch += (state.targetPitch - state.pitch) * Math.min(1, dt * 5);
     state.zoom += (state.targetZoom - state.zoom) * Math.min(1, dt * 5);
@@ -226,10 +222,7 @@ export function startAsciiGalaxy(
     // On touch the orbit never stops: a finger drag is added on top of it, so there is no pause
     // during a swipe and nothing to resume afterwards. A mouse holds the galaxy still while the
     // button is down and the orbit comes back a moment after release.
-    if (e.pointerType !== "touch") {
-      state.auto = false;
-      resumeAt = Infinity;
-    }
+    if (e.pointerType !== "touch") state.auto = false;
     try {
       root.setPointerCapture(e.pointerId);
     } catch {
@@ -280,7 +273,6 @@ export function startAsciiGalaxy(
     lastPointerAt = performance.now();
     pointers.delete(e.pointerId);
     if (pointers.size === 0) {
-      resumeAt = performance.now() + RESUME_DELAY;
       pinch = 0;
       canvas.style.cursor = "grab";
     } else {
@@ -297,7 +289,6 @@ export function startAsciiGalaxy(
   function releaseAll() {
     pointers.clear();
     pinch = 0;
-    resumeAt = performance.now() + RESUME_DELAY;
     canvas.style.cursor = "grab";
   }
   const onWindowBlur = () => releaseAll();
