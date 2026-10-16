@@ -30,6 +30,17 @@ export type GalaxyModel = {
   systems: System[];
 };
 
+// How much to scale the brightness of the galaxy's own stars for the screen. Cells are a fixed
+// size in pixels, so a phone has several times fewer cells across the galaxy than a laptop but
+// the same number of stars, and they pile into solid blocks of "$" that hide the rings and
+// lanes. The gain keeps the stars per cell at the laptop level (1 on desktop, lower on phones).
+export function densityGain(W: number, H: number) {
+  const scale = Math.min(W / 6.9, H / 3.5);
+  const font = clamp(W / 108, 9.2, 12.6);
+  const cells = (scale * scale) / (0.64 * font * 1.14 * font);
+  return clamp(cells / 336, 0.18, 1);
+}
+
 export type ViewState = { t: number; yaw: number; pitch: number; zoom: number };
 
 // Angular speeds depend only on radius, so they are computed once, not every frame.
@@ -78,11 +89,22 @@ export function createGalaxyModel(): GalaxyModel {
   const fillGauss = () => Math.sqrt(-2 * Math.log(Math.max(fill(), 0.000001))) * Math.cos(TAU * fill());
   // Dark lanes: thin bands of near-empty space between the rings, so each ring stands apart.
   // The fill stars thin out hard inside them (the original arms and hub are left alone).
-  const LANES = [0.62, 0.92, 1.25, 1.62, 2.02, 2.45, 2.9];
+  const LANES = [0.6, 0.86, 1.14, 1.46, 1.82, 2.22, 2.66, 3.1];
   const laneOpen = (r: number) => {
     let open = 1;
-    for (const l of LANES) open *= 1 - 0.92 * Math.exp(-(((r - l) / 0.085) ** 2));
+    for (const l of LANES) open *= 1 - 0.98 * Math.exp(-(((r - l) / 0.13) ** 2));
     return open;
+  };
+  // Spiral arms for the fill, as in a grand-design spiral: stars gather along four arms that
+  // wind like the main ones, and the space between the arms is mostly dark.
+  const armOpen = (r: number, a: number) => {
+    const c = 0.5 + 0.5 * Math.cos(4 * (a - Math.log(r / 0.25) * 2.9));
+    return 0.1 + 0.9 * c * c;
+  };
+  const fillAngle = (r: number) => {
+    let a = fill() * TAU;
+    for (let tries = 0; tries < 8 && fill() > armOpen(r, a); tries++) a = fill() * TAU;
+    return a;
   };
   const fillRadius = (draw: () => number) => {
     let r = draw();
@@ -127,25 +149,50 @@ export function createGalaxyModel(): GalaxyModel {
     const b = fill();
     arms.push({
       r,
-      a: fill() * TAU,
+      a: fillAngle(r),
       z: fillGauss() * (0.03 + 0.02 * r),
       col: b < 0.3 ? 1 : b < 0.45 ? 2 : 0,
       v: 0.2 + fill() * 0.3,
       om: galaxyOmega(r),
     });
   }
-  for (let i = 0; i < 6000; i++) {
+  for (let i = 0; i < 4500; i++) {
     const r = fillRadius(() => clamp(0.2 + Math.pow(fill(), 1.0) * 2.7, 0.2, 3.0));
     const b = fill();
     arms.push({
       r,
-      a: fill() * TAU,
+      a: fillAngle(r),
       z: fillGauss() * (0.03 + 0.02 * r),
       col: b < 0.2 ? 1 : b < 0.3 ? 2 : 0,
       v: 0.15 + fill() * 0.3,
       om: galaxyOmega(r),
     });
   }
+  // A short bright bar through the hub, turning as one rigid piece like the bar in the Milky Way.
+  const barOm = galaxyOmega(0.35);
+  for (let i = 0; i < 420; i++) {
+    const x = (fill() * 2 - 1) * (0.2 + 0.4 * fill());
+    const r = Math.max(0.1, Math.abs(x));
+    const b = fill();
+    arms.push({
+      r,
+      a: (x < 0 ? Math.PI : 0) + (fillGauss() * 0.045) / r,
+      z: fillGauss() * 0.02,
+      col: b < 0.5 ? 5 : b < 0.8 ? 4 : 2,
+      v: 0.35 + fill() * 0.5,
+      om: barOm,
+    });
+  }
+  // Thin the original arm stars where they cross a dark lane, so the lanes read as real gaps. A
+  // separate generator is used so nothing else in the galaxy shifts.
+  let thinSeed = 4177;
+  const thin = () => {
+    thinSeed = (1664525 * thinSeed + 1013904223) >>> 0;
+    return thinSeed / 4294967296;
+  };
+  const kept = arms.filter((p, i) => i >= 3500 || thin() < 0.05 + 0.95 * laneOpen(p.r));
+  arms.length = 0;
+  for (const p of kept) arms.push(p);
 
   for (let i = 0; i < 530; i++) {
     const r = Math.abs(gauss()) * 0.76;

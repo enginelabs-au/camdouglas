@@ -3,6 +3,7 @@ import {
   PALETTE,
   RAMP,
   clamp,
+  densityGain,
   emitOverlay,
   type GalaxyModel,
   type Renderer,
@@ -49,6 +50,7 @@ uniform vec4 uTrig;
 uniform float uBase;
 uniform vec3 uMask;
 uniform float uScale;
+uniform float uGain;
 
 flat out vec4 vOut;
 
@@ -76,6 +78,8 @@ void main() {
     p = vec2(uSize.x * 0.5 + xx * sc, uSize.y * 0.51 + dy * sc);
     if (type > 1.5) w *= clamp(0.86 + 0.43 * cos(a - uYaw), 0.35, 1.3);
   }
+
+  if (type < 2.5) w *= uGain;
 
   vec2 cell = floor(p / uCell);
   vec2 offset = (cell + 0.5) * uCell - uMask.xy;
@@ -296,6 +300,7 @@ export function createRendererGL(canvas: HTMLCanvasElement, model: GalaxyModel):
       "uBase",
       "uMask",
       "uScale",
+      "uGain",
     ]);
     glyphProg = link(gl, GLYPH_VERT, GLYPH_FRAG, [
       "uScene",
@@ -448,6 +453,7 @@ export function createRendererGL(canvas: HTMLCanvasElement, model: GalaxyModel):
     gl.uniform1f(u.uBase, cam.base);
     gl.uniform3f(u.uMask, centre.x, centre.y, radius * radius * 0.85);
     gl.uniform1f(u.uScale, sceneScale);
+    gl.uniform1f(u.uGain, densityGain(W, H));
 
     gl.bindVertexArray(staticVao);
     gl.drawArrays(gl.POINTS, 0, staticData.count);

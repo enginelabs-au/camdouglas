@@ -3,6 +3,7 @@ import {
   PALETTE,
   RAMP,
   clamp,
+  densityGain,
   diskDoppler,
   emitOverlay,
   type GalaxyModel,
@@ -65,6 +66,7 @@ export function createRenderer2D(canvas: HTMLCanvasElement, model: GalaxyModel):
     colID.fill(0);
 
     const t = view.t;
+    const gain = densityGain(W, H);
     cam.prepare(view, W, H);
 
     for (const p of model.back) {
@@ -79,19 +81,19 @@ export function createRenderer2D(canvas: HTMLCanvasElement, model: GalaxyModel):
     for (const p of model.arms) {
       const a = p.a + t * p.om;
       const v = cam.project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      put(v.x, v.y, p.v * (1.15 - 0.17 * p.r), p.col);
+      put(v.x, v.y, p.v * (1.15 - 0.17 * p.r) * gain, p.col);
     }
 
     for (const p of model.halo) {
       const a = p.a + t * p.om;
       const v = cam.project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      put(v.x, v.y, p.v, p.col);
+      put(v.x, v.y, p.v * gain, p.col);
     }
 
     for (const p of model.disk) {
       const a = p.a + t * p.om;
       const v = cam.project(p.r * Math.cos(a), p.r * Math.sin(a), p.z);
-      put(v.x, v.y, p.v * diskDoppler(a, view.yaw), p.col);
+      put(v.x, v.y, p.v * diskDoppler(a, view.yaw) * gain, p.col);
     }
 
     const origin = cam.project(0, 0, 0);
