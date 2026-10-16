@@ -223,8 +223,9 @@ export function startAsciiGalaxy(
     oldY = e.clientY;
     pinch = 0;
     if (inPanel) return;
-    // A finger that has only landed might be the first half of a pinch, and a pinch zooms without
-    // stopping the orbit. So a touch only stops it once it actually drags (see onPointerMove).
+    // On touch the orbit never stops: a finger drag is added on top of it, so there is no pause
+    // during a swipe and nothing to resume afterwards. A mouse holds the galaxy still while the
+    // button is down and the orbit comes back a moment after release.
     if (e.pointerType !== "touch") {
       state.auto = false;
       resumeAt = Infinity;
@@ -257,8 +258,6 @@ export function startAsciiGalaxy(
         return;
       }
       next.locked = true;
-      state.auto = false;
-      resumeAt = Infinity;
     }
     pointers.set(e.pointerId, next);
     if (pointers.size >= 2) {
@@ -270,10 +269,6 @@ export function startAsciiGalaxy(
       return;
     }
     if (prev.inPanel && !next.locked) return;
-    if (state.auto && e.pointerType === "touch" && Math.hypot(e.clientX - prev.startX, e.clientY - prev.startY) > 6) {
-      state.auto = false;
-      resumeAt = Infinity;
-    }
     state.targetYaw += (e.clientX - oldX) * 0.008;
     state.targetPitch += (e.clientY - oldY) * 0.008;
     oldX = e.clientX;
