@@ -1,4 +1,5 @@
 import { site, socialLinks } from "@/config/site";
+import publishedReviews from "@/config/published-reviews.json";
 import type { Review, ReviewProviderId } from "@/config/types";
 
 export function displayHandle(review: Pick<Review, "handle" | "provider">) {
@@ -33,4 +34,6 @@ export const reviewProviders: ReviewProvider[] = [
   { id: "github", label: "GitHub", search: false, login: true },
 ];
 
-export const approvedReviews: Review[] = [];
+// Kept in the repository so the site still shows the published reviews when the Blob
+// store is suspended. The nightly backup refreshes this file only when the live list grows.
+export const approvedReviews = publishedReviews as Review[];

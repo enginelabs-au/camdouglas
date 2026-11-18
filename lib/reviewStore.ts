@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import { head, list, put } from "@vercel/blob";
+import { head, put } from "@vercel/blob";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { approvedReviews as seeded, fallbackLinkedInProfile } from "@/config/reviews";
 import type { Review } from "@/config/types";
 import type { ReviewIdentity } from "@/lib/reviewIdentity";
@@ -51,19 +52,24 @@ async function readJson(url: string): Promise<unknown> {
   return response.json();
 }
 
-async function readBlob(): Promise<Review[]> {
-  const { blobs } = await list({ prefix: BLOB_PREFIX });
-  const reviews = await Promise.all(
-    blobs.map(async (item) => {
-      try {
-        return await readJson(item.downloadUrl || item.url);
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return reviews.filter(isReview);
-}
+// One snapshot read, at most every six hours, instead of listing the store on every page view.
+// Listing is an advanced Blob operation, and doing it per visit is what suspended the store.
+// A failed read returns nothing so the committed reviews stay on the page.
+const readSnapshot = unstable_cache(
+  async (): Promise<Review[]> => {
+    try {
+      const meta = await head(`${SNAPSHOT_PREFIX}latest.json`);
+      const parsed = await readJson(meta.downloadUrl || meta.url);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(isReview);
+    } catch (error) {
+      console.error("Published review snapshot unreadable", error);
+      return [];
+    }
+  },
+  ["published-reviews-snapshot"],
+  { revalidate: 60 * 60 * 6, tags: ["published-reviews"] },
+);
 
 async function putReviewJson(pathname: string, review: Review | Review[], overwrite: boolean) {
   await put(pathname, JSON.stringify(review), {
@@ -80,8 +86,12 @@ async function writeBlob(review: Review) {
 }
 
 async function blobHas(id: string) {
-  const { blobs } = await list({ prefix: blobPath(id) });
-  return blobs.some((item) => item.pathname === blobPath(id));
+  try {
+    await head(blobPath(id));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readLocal(): Promise<Review[]> {
@@ -108,7 +118,12 @@ async function writeLocal(review: Review) {
 }
 
 export async function listApprovedReviews(): Promise<Review[]> {
-  const stored = blobReady() ? await readBlob() : await readLocal();
+  let stored: Review[] = [];
+  try {
+    stored = blobReady() ? await readSnapshot() : await readLocal();
+  } catch (error) {
+    console.error("Published reviews unreadable", error);
+  }
   const byId = new Map<string, Review>();
   for (const review of seeded) byId.set(review.id, review);
   for (const review of stored) byId.set(review.id, review);
@@ -162,6 +177,7 @@ export async function snapshotPublishedReviews() {
   const day = new Date().toISOString().slice(0, 10);
   try {
     await putReviewJson(`${SNAPSHOT_PREFIX}latest.json`, reviews, true);
+    revalidateTag("published-reviews", "max");
   } catch (error) {
     console.error("Review latest snapshot failed", error);
     return { reviews, stored: false };

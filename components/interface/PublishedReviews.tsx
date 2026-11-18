@@ -20,11 +20,18 @@ export function PublishedReviews({ heading }: { heading?: string }) {
       .then((payload: { reviews?: Review[] }) => {
         if (cancelled) return;
         const next = payload.reviews ?? [];
-        setReviews((current) =>
-          current && current.length === next.length && current.every((item, i) => item.id === next[i]?.id)
-            ? current
-            : next,
-        );
+        setReviews((current) => {
+          // An empty response means the store could not be read. Keep the reviews already shown.
+          if (!next.length) return current ?? [];
+          if (
+            current &&
+            current.length === next.length &&
+            current.every((item, i) => item.id === next[i]?.id)
+          ) {
+            return current;
+          }
+          return next;
+        });
       })
       .catch(() => {
         if (!cancelled) setReviews((current) => current ?? []);

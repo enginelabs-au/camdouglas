@@ -16,18 +16,30 @@ jobs:
       - name: Fetch published reviews
         run: |
           mkdir -p backups
-          curl -fsS "https://camdouglas.com/api/reviews" -o backups/reviews.json
+          curl -fsS "https://camdouglas.com/api/reviews" -o /tmp/reviews.json
           python3 - <<'PY'
-          import json
+          import json, subprocess
           from pathlib import Path
-          path = Path("backups/reviews.json")
-          path.write_text(json.dumps(json.loads(path.read_text()), indent=2) + "\n")
+          fresh = json.loads(Path("/tmp/reviews.json").read_text())
+          reviews = fresh.get("reviews")
+          if not isinstance(reviews, list) or not reviews:
+              raise SystemExit("Refusing to back up an empty review list.")
+          try:
+              current = json.loads(subprocess.check_output(["git", "show", "HEAD:backups/reviews.json"]))
+              previous = current.get("reviews") or []
+          except subprocess.CalledProcessError:
+              previous = []
+          if len(reviews) < len(previous):
+              raise SystemExit(f"Refusing to replace {len(previous)} reviews with {len(reviews)}.")
+          text = json.dumps({"reviews": reviews}, indent=2) + "\n"
+          Path("backups/reviews.json").write_text(text)
+          Path("config/published-reviews.json").write_text(json.dumps(reviews, indent=2) + "\n")
           PY
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backups/reviews.json
+          git add backups/reviews.json config/published-reviews.json
           if git diff --staged --quiet; then
             echo "No review changes."
             exit 0
