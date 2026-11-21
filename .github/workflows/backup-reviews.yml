@@ -46,3 +46,13 @@ jobs:
           fi
           git commit -m "Backup published reviews."
           git push
+      - name: Report a successful backup
+        if: success()
+        env:
+          HEARTBEAT_URL: ${{ secrets.BETTERSTACK_REVIEW_BACKUP_HEARTBEAT }}
+        run: |
+          if [ -z "$HEARTBEAT_URL" ]; then
+            echo "Backup heartbeat secret is missing."
+            exit 1
+          fi
+          curl -fsS -o /dev/null "$HEARTBEAT_URL"
